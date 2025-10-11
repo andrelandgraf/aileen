@@ -9,7 +9,7 @@ import { projectsTable } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 
 // Allow streaming responses up to 60 seconds (dev server cold start can take time)
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 const freestyle = new FreestyleSandboxes({
   apiKey: process.env.FREESTYLE_API_KEY!,
