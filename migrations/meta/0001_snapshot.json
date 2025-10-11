@@ -1,6 +1,6 @@
 {
-  "id": "907cf684-db10-43ff-a312-b53efd9f60c9",
-  "prevId": "00000000-0000-0000-0000-000000000000",
+  "id": "678e85cd-1709-4752-997d-2dc7fe0016ea",
+  "prevId": "907cf684-db10-43ff-a312-b53efd9f60c9",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -23,6 +23,12 @@
         },
         "repo_id": {
           "name": "repo_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "neon_project_id": {
+          "name": "neon_project_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true

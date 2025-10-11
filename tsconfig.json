@@ -19,6 +19,7 @@
       }
     ],
     "paths": {
+      "@/mastra": ["./mastra/index.ts"],
       "@/*": ["./src/*"]
     }
   },

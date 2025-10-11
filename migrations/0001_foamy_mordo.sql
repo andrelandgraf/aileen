@@ -1,0 +1,1 @@
+ALTER TABLE "projects_table" ADD COLUMN "neon_project_id" text NOT NULL;

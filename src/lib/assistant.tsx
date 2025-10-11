@@ -1,7 +1,10 @@
 "use client";
 
 import { AssistantRuntimeProvider } from "@assistant-ui/react";
-import { useChatRuntime } from "@assistant-ui/react-ai-sdk";
+import {
+  AssistantChatTransport,
+  useChatRuntime,
+} from "@assistant-ui/react-ai-sdk";
 import { Thread } from "@/components/assistant-ui/thread";
 import { ThreadList } from "@/components/assistant-ui/thread-list";
 import { AssistantCloud } from "@assistant-ui/react";
@@ -18,6 +21,9 @@ export const Assistant = () => {
 
   const runtime = useChatRuntime({
     cloud,
+    transport: new AssistantChatTransport({
+      api: "/my-custom-api/chat", // Custom API URL with forwarding
+    }),
   });
 
   return (
