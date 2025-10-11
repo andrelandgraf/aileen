@@ -8,7 +8,7 @@ import { db } from "@/lib/db/db";
 import { projectsTable } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 
-// Allow streaming responses up to 60 seconds (dev server cold start can take time)
+// Allow streaming responses up to 5 minutes (dev server operations can be slow)
 export const maxDuration = 300;
 
 const freestyle = new FreestyleSandboxes({
@@ -104,6 +104,7 @@ export async function POST(req: Request, { params }: RouteParams) {
       servers: {
         freestyleDevServer: {
           url: new URL(mcpEphemeralUrl),
+          timeout: 180000, // 3 minutes timeout for dev server operations
         },
       },
     });

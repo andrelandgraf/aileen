@@ -15,6 +15,13 @@
       "when": 1760149615488,
       "tag": "0001_foamy_mordo",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1760158656198,
+      "tag": "0002_nasty_boomerang",
+      "breakpoints": true
     }
   ]
 }

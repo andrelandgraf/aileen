@@ -16,6 +16,7 @@ interface ProjectChatProps {
   projectId: string;
   projectName: string;
   repoId: string;
+  threadId: string;
   previewUrl: string;
   deploymentUrl: string;
   codeServerUrl: string;
@@ -25,6 +26,7 @@ export const ProjectChat = ({
   projectId,
   projectName,
   repoId,
+  threadId,
   previewUrl,
   deploymentUrl,
   codeServerUrl,
@@ -60,6 +62,7 @@ export const ProjectChat = ({
 
   const runtime = useChatRuntime({
     cloud,
+    id: threadId, // Use the thread ID as the chat ID
     transport: new AssistantChatTransport({
       api: `/api/projects/${projectId}/chat`,
     }),

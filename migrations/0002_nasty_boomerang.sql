@@ -1,0 +1,1 @@
+ALTER TABLE "projects_table" ADD COLUMN "thread_id" text NOT NULL;

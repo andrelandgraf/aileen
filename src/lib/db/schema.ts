@@ -8,6 +8,7 @@ export const projectsTable = pgTable("projects_table", {
   name: text("name").notNull(),
   repoId: text("repo_id").notNull(),
   neonProjectId: text("neon_project_id").notNull(),
+  threadId: text("thread_id").notNull(),
   userId: text("user_id")
     .notNull()
     .references(() => usersTable.id),

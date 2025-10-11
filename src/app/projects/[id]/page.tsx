@@ -66,6 +66,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
       projectId={id}
       projectName={project.name}
       repoId={project.repoId}
+      threadId={project.threadId}
       previewUrl={ephemeralUrl}
       deploymentUrl={deploymentUrl}
       codeServerUrl={codeServerUrl}

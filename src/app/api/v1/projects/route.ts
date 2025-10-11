@@ -4,6 +4,7 @@ import { db } from "@/lib/db/db";
 import { projectsTable } from "@/lib/db/schema";
 import { freestyleService } from "@/lib/freestyle";
 import { createNeonProject } from "@/lib/neon/projects";
+import { createAssistantThread } from "@/lib/assistant-cloud";
 
 export async function POST(request: Request) {
   try {
@@ -37,12 +38,18 @@ export async function POST(request: Request) {
     console.log("[API] Neon project created with ID:", neonProjectId);
     console.log("[API] Database URL:", databaseUrl);
 
-    // Create project in database with Freestyle repoId and Neon project ID
+    // Create AssistantCloud thread
+    console.log("[API] Creating AssistantCloud thread...");
+    const threadId = await createAssistantThread(user.id, name);
+    console.log("[API] Thread created with ID:", threadId);
+
+    // Create project in database with Freestyle repoId, Neon project ID, and thread ID
     console.log("[API] Inserting project into database...");
     console.log("[API] Insert values:", {
       name,
       repoId,
       neonProjectId,
+      threadId,
       userId: user.id,
     });
 
@@ -52,6 +59,7 @@ export async function POST(request: Request) {
         name,
         repoId,
         neonProjectId,
+        threadId,
         userId: user.id,
       })
       .returning();
