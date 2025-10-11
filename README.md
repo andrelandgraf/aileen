@@ -4,14 +4,6 @@ A modern, production-ready template for building full-stack React applications u
 
 ## Getting Started
 
-### Wrangler CLI
-
-Make sure you have the latest version of the wrangler CLI installed.
-
-```bash
-npm install -g wrangler
-```
-
 ### Environment Variables
 
 Create a `.env` file in the root of the project by copying the `example.env` file:
@@ -64,22 +56,6 @@ npm run dev
 
 Your application will be available at `http://localhost:3000`.
 
-### Deploying Secrets
-
-Then run the following command to sync the secrets from the `.env` file to Cloudflare:
-
-```bash
-wrangler secret bulk .env
-```
-
-## Previewing the Production Build
-
-Preview the production build locally:
-
-```bash
-npm run preview
-```
-
 ## Building for Production
 
 Create a production build:
@@ -97,22 +73,6 @@ To build and deploy directly to production:
 ```sh
 npm run deploy
 ```
-
-To deploy a preview URL:
-
-```sh
-npx wrangler versions upload
-```
-
-You can then promote a version to production after verification or roll it out progressively.
-
-```sh
-npx wrangler versions deploy
-```
-
-## Add Worker URL to Neon Auth Trusted Domains
-
-After deploying to Cloudflare Workers for the first time, copy the URL of your app and add it to the Neon Auth trusted domains in your Neon project > Auth > Configuration > Domains section. This enables Neon Auth to redirect back to your app after authentication.
 
 ## Styling
 

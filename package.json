@@ -1,5 +1,5 @@
 {
-  "name": "temp",
+  "name": "aileen",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -7,9 +7,6 @@
     "build": "next build",
     "start": "next start",
     "fmt": "prettier --write .",
-    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
-    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
-    "cf-typegen": "wrangler types --env-interface CloudflareEnv ./cloudflare-env.d.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio"
