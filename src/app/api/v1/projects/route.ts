@@ -58,20 +58,6 @@ export async function POST(request: Request) {
 
     console.log("[API] Project created successfully:", project);
 
-    // Trigger initial deployment (async, don't wait)
-    console.log("[API] Triggering initial deployment...");
-    fetch(
-      `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/projects/${project.id}/deploy`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      },
-    ).catch((error) => {
-      console.error("[API] Failed to trigger initial deployment:", error);
-    });
-
     return NextResponse.json(project, { status: 201 });
   } catch (error) {
     console.error("Error creating project:", error);

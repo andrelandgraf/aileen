@@ -8,12 +8,17 @@ import {
 import { Thread } from "@/components/assistant-ui/thread";
 import { AssistantCloud } from "@assistant-ui/react";
 import { ProfileButton } from "@/components/profile-button";
+import { Button } from "@/components/ui/button";
+import { ExternalLink, Rocket } from "lucide-react";
+import { useState } from "react";
 
 interface ProjectChatProps {
   projectId: string;
   projectName: string;
   repoId: string;
   previewUrl: string;
+  deploymentUrl: string;
+  codeServerUrl: string;
 }
 
 export const ProjectChat = ({
@@ -21,7 +26,30 @@ export const ProjectChat = ({
   projectName,
   repoId,
   previewUrl,
+  deploymentUrl,
+  codeServerUrl,
 }: ProjectChatProps) => {
+  const [isDeploying, setIsDeploying] = useState(false);
+
+  const handleDeploy = async () => {
+    setIsDeploying(true);
+    try {
+      const response = await fetch(`/api/projects/${projectId}/deploy`, {
+        method: "POST",
+      });
+      if (!response.ok) {
+        throw new Error("Deployment failed");
+      }
+      // Show success message (you could add a toast here)
+      console.log("Deployment triggered successfully");
+    } catch (error) {
+      console.error("Failed to deploy:", error);
+      // Show error message (you could add a toast here)
+    } finally {
+      setIsDeploying(false);
+    }
+  };
+
   const cloud = new AssistantCloud({
     baseUrl: process.env.NEXT_PUBLIC_ASSISTANT_BASE_URL!,
     authToken: () =>
@@ -44,7 +72,21 @@ export const ProjectChat = ({
           <div className="flex items-center gap-4">
             <h1 className="text-lg font-semibold">{projectName}</h1>
           </div>
-          <ProfileButton />
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => window.open(deploymentUrl, "_blank")}
+            >
+              <ExternalLink className="h-4 w-4 mr-2" />
+              View Live Site
+            </Button>
+            <Button size="sm" onClick={handleDeploy} disabled={isDeploying}>
+              <Rocket className="h-4 w-4 mr-2" />
+              {isDeploying ? "Deploying..." : "Deploy"}
+            </Button>
+            <ProfileButton />
+          </div>
         </header>
         <div className="flex flex-1 overflow-hidden">
           {/* Chat side */}

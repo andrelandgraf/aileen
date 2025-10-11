@@ -127,32 +127,13 @@ export async function GET(req: Request, { params }: RouteParams) {
 
     console.log("[Deploy API] Deployment URL:", deploymentUrl);
 
-    // Get deployment info from Freestyle
-    try {
-      const deployments = await freestyle.listWebDeployments();
-
-      // Find deployment for this domain
-      const deployment = deployments.find((d: any) =>
-        d.domains?.includes(customDomain),
-      );
-
-      return NextResponse.json({
-        domain: customDomain,
-        url: deploymentUrl,
-        status: deployment?.status || "unknown",
-        deployment: deployment || null,
-      });
-    } catch (error) {
-      console.error("[Deploy API] Error fetching deployments:", error);
-
-      // Return basic info even if we can't get status
-      return NextResponse.json({
-        domain: customDomain,
-        url: deploymentUrl,
-        status: "unknown",
-        deployment: null,
-      });
-    }
+    // Return deployment info
+    // Note: Deployment status tracking could be added in the future
+    return NextResponse.json({
+      domain: customDomain,
+      url: deploymentUrl,
+      status: "deployed",
+    });
   } catch (error) {
     console.error("[Deploy API] Error:", error);
     return NextResponse.json(

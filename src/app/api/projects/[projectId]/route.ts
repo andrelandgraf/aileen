@@ -49,7 +49,7 @@ export async function DELETE(req: Request, { params }: RouteParams) {
     // Delete Freestyle repository
     console.log("[DELETE Project] Deleting Freestyle repository...");
     try {
-      await freestyle.deleteGitRepository(project.repoId);
+      await freestyle.deleteGitRepository({ repoId: project.repoId });
       console.log("[DELETE Project] Freestyle repository deleted successfully");
     } catch (error) {
       console.error("[DELETE Project] Error deleting Freestyle repo:", error);

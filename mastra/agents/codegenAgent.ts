@@ -1,4 +1,4 @@
-import { openai } from "@ai-sdk/openai";
+import { anthropic } from "@ai-sdk/anthropic";
 import { Agent } from "@mastra/core/agent";
 
 export const codegenAgent = new Agent({
@@ -30,5 +30,5 @@ export const codegenAgent = new Agent({
     "- Assist with API route implementation\n" +
     "- Ensure code is accessible, performant, and maintainable\n\n" +
     "Always write clean, well-documented code with proper TypeScript types.",
-  model: openai("gpt-4o"),
+  model: anthropic("claude-3-5-sonnet-20241022"),
 });

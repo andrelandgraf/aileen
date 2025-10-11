@@ -1,7 +1,7 @@
 import { MCPClient } from "@mastra/mcp";
 import { Mastra } from "@mastra/core";
 import { Agent } from "@mastra/core/agent";
-import { openai } from "@ai-sdk/openai";
+import { anthropic } from "@ai-sdk/anthropic";
 import { FreestyleSandboxes } from "freestyle-sandboxes";
 import { stackServerApp } from "@/lib/stack/server";
 import { db } from "@/lib/db/db";
@@ -28,11 +28,14 @@ export async function POST(req: Request, { params }: RouteParams) {
     const { messages } = await req.json();
 
     console.log("[Chat API] Request for projectId:", projectId);
-    
+
     // Verify Freestyle API key is set
     if (!process.env.FREESTYLE_API_KEY) {
       console.error("[Chat API] FREESTYLE_API_KEY not set!");
-      return new Response("Server configuration error: FREESTYLE_API_KEY not set", { status: 500 });
+      return new Response(
+        "Server configuration error: FREESTYLE_API_KEY not set",
+        { status: 500 },
+      );
     }
     console.log("[Chat API] Freestyle API key verified");
 
@@ -61,28 +64,32 @@ export async function POST(req: Request, { params }: RouteParams) {
     // Request dev server to get MCP URL
     console.log("[Chat API] Requesting dev server...");
     console.log("[Chat API] This may take 20-30 seconds on cold start...");
-    
+
     let devServerResponse;
     try {
       // Add timeout wrapper (45 seconds)
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error("Dev server request timed out after 45s")), 45000)
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(
+          () => reject(new Error("Dev server request timed out after 45s")),
+          45000,
+        ),
       );
-      
+
       devServerResponse = await Promise.race([
         freestyle.requestDevServer({
           repoId: project.repoId,
         }),
-        timeoutPromise
+        timeoutPromise,
       ]);
-      
+
       console.log("[Chat API] Dev server request completed successfully");
     } catch (error) {
       console.error("[Chat API] Dev server request failed:", error);
       throw error;
     }
-    
-    const { ephemeralUrl, mcpEphemeralUrl, codeServerUrl } = devServerResponse as any;
+
+    const { ephemeralUrl, mcpEphemeralUrl, codeServerUrl } =
+      devServerResponse as any;
 
     console.log("[Chat API] Dev server URLs:", {
       ephemeralUrl,
@@ -119,34 +126,100 @@ export async function POST(req: Request, { params }: RouteParams) {
 
     // Get tools from both MCP servers
     console.log("[Chat API] Getting tools from Freestyle MCP server...");
-    const freestyleTools = await freestyleMcp.getTools();
+    const rawFreestyleTools = await freestyleMcp.getTools();
     console.log(
-      "[Chat API] Freestyle MCP tools available:",
-      Object.keys(freestyleTools).length,
+      "[Chat API] Freestyle MCP tools loaded:",
+      Object.keys(rawFreestyleTools).length,
     );
-    console.log("[Chat API] Freestyle tool names:", Object.keys(freestyleTools));
 
     console.log("[Chat API] Getting tools from Neon MCP server...");
-    const neonTools = await neonMcp.getTools();
+    const rawNeonTools = await neonMcp.getTools();
     console.log(
-      "[Chat API] Neon MCP tools available:",
-      Object.keys(neonTools).length,
+      "[Chat API] Neon MCP tools loaded:",
+      Object.keys(rawNeonTools).length,
     );
-    console.log("[Chat API] Neon tool names:", Object.keys(neonTools));
+
+    // Validate and normalize tool schemas for Anthropic
+    const normalizeToolSchema = (tool: any, toolName: string): any => {
+      if (!tool.parameters) {
+        // No parameters - add empty object schema
+        return {
+          ...tool,
+          parameters: {
+            type: "object",
+            properties: {},
+            required: [],
+          },
+        };
+      }
+
+      const params = tool.parameters;
+
+      // If missing type field, set to "object"
+      if (!params.type) {
+        console.log(
+          `[Chat API] Tool ${toolName} missing type, setting to "object"`,
+        );
+        return {
+          ...tool,
+          parameters: {
+            ...params,
+            type: "object",
+          },
+        };
+      }
+
+      // If type is not "object", skip this tool
+      if (params.type !== "object") {
+        console.log(
+          `[Chat API] Tool ${toolName} has invalid type: ${params.type}, skipping`,
+        );
+        return null;
+      }
+
+      return tool;
+    };
+
+    // Filter and normalize tools
+    const freestyleTools: Record<string, any> = {};
+    for (const [name, tool] of Object.entries(rawFreestyleTools)) {
+      const normalized = normalizeToolSchema(tool, name);
+      if (normalized) {
+        freestyleTools[name] = normalized;
+      }
+    }
+
+    const neonTools: Record<string, any> = {};
+    for (const [name, tool] of Object.entries(rawNeonTools)) {
+      const normalized = normalizeToolSchema(tool, name);
+      if (normalized) {
+        neonTools[name] = normalized;
+      }
+    }
+
+    console.log(
+      "[Chat API] Valid Freestyle tools:",
+      Object.keys(freestyleTools).length,
+    );
+    console.log("[Chat API] Valid Neon tools:", Object.keys(neonTools).length);
 
     // Combine tools from both MCP servers
     const tools = { ...freestyleTools, ...neonTools };
-    console.log(
-      "[Chat API] Total MCP tools available:",
-      Object.keys(tools).length,
-    );
-    console.log("[Chat API] All tool names:", Object.keys(tools));
+    console.log("[Chat API] Total valid tools:", Object.keys(tools).length);
 
-    // Create a dynamic codegen agent with MCP tools
+    // Create a dynamic agent with MCP tools and project context
     const codegenAgent = new Agent({
       name: "codegen-agent-mcp",
       instructions:
-        "You are Aileen, an expert Next.js code generation assistant.\n\n" +
+        "You are Aileen, an expert Next.js code generation assistant. " +
+        "You specialize in building modern, production-ready Next.js applications using the following stack:\n\n" +
+        "**Core Technologies:**\n" +
+        "- Next.js (App Router with RSC)\n" +
+        "- TypeScript\n" +
+        "- Tailwind CSS for styling\n" +
+        "- shadcn/ui for UI components\n" +
+        "- Drizzle ORM for database operations\n" +
+        "- Neon (PostgreSQL) for database hosting\n\n" +
         `**Project Context:**\n` +
         `- Project Name: ${project.name}\n` +
         `- Neon Project ID: ${project.neonProjectId}\n` +
@@ -154,13 +227,14 @@ export async function POST(req: Request, { params }: RouteParams) {
         "**Your Mission:**\n" +
         "You are building a Next.js application. The existing app is in the /template directory. " +
         "Edit the app incrementally according to the user's requirements.\n\n" +
-        "**Tech Stack:**\n" +
-        "- Next.js (App Router with React Server Components)\n" +
-        "- TypeScript\n" +
-        "- Tailwind CSS for styling\n" +
-        "- shadcn/ui for UI components\n" +
-        "- Drizzle ORM for database operations\n" +
-        "- Neon (PostgreSQL) for database hosting\n\n" +
+        "**Best Practices:**\n" +
+        "- Use React Server Components (RSC) for data fetching\n" +
+        "- Keep client components minimal and only for interactivity\n" +
+        "- Use shadcn/ui components for consistent, accessible UI\n" +
+        "- Write type-safe database queries with Drizzle ORM\n" +
+        "- Follow Next.js App Router conventions\n" +
+        "- Use Tailwind CSS utility classes for styling\n" +
+        "- Implement proper error handling and loading states\n\n" +
         "**Database Management:**\n" +
         `You have access to the Neon MCP server. When working with the database:\n` +
         `- ONLY use and connect to Neon Project ID: ${project.neonProjectId}\n` +
@@ -168,20 +242,11 @@ export async function POST(req: Request, { params }: RouteParams) {
         `- Create database branches for testing new features\n` +
         `- Use Drizzle ORM in your code for type-safe queries\n` +
         `- Never hardcode database credentials - use environment variables\n\n` +
-        "**Best Practices:**\n" +
-        "- Use React Server Components for data fetching\n" +
-        "- Keep client components minimal and only for interactivity\n" +
-        "- Use shadcn/ui components for consistent, accessible UI\n" +
-        "- Write type-safe database queries with Drizzle ORM\n" +
-        "- Follow Next.js App Router conventions\n" +
-        "- Use Tailwind CSS utility classes\n" +
-        "- Implement proper error handling and loading states\n\n" +
         "**IMPORTANT - Committing Changes:**\n" +
         "After you make changes and are happy with them, you MUST commit them to git using the MCP tools:\n" +
         "1. Stage your changes (git add)\n" +
         "2. Commit with a descriptive message (git commit)\n" +
-        "This is CRITICAL - always commit changes as your final step after each task completion.\n" +
-        "The deployment will be triggered automatically after commits.\n\n" +
+        "This is CRITICAL - always commit changes as your final step after each task completion.\n\n" +
         "**Workflow:**\n" +
         "1. Understand the user's requirements\n" +
         "2. Use Neon MCP tools if database changes are needed (schemas, branches, etc.)\n" +
@@ -190,7 +255,7 @@ export async function POST(req: Request, { params }: RouteParams) {
         "5. Once satisfied with the changes, COMMIT them using git tools\n" +
         "6. Confirm the commit was successful\n\n" +
         "Remember: NO CHANGE IS COMPLETE WITHOUT A COMMIT. Always end your work with a git commit.",
-      model: openai("gpt-4o"),
+      model: anthropic("claude-3-5-sonnet-20241022"),
       tools,
     });
 
@@ -205,21 +270,7 @@ export async function POST(req: Request, { params }: RouteParams) {
     const agent = mastra.getAgent("codegenAgent");
     const result = await agent.stream(messages);
 
-    // Trigger deployment after chat completes (async, don't wait)
-    console.log("[Chat API] Triggering deployment after chat response...");
-    fetch(
-      `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/projects/${projectId}/deploy`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      },
-    ).catch((error) => {
-      console.error("[Chat API] Failed to trigger deployment:", error);
-    });
-
-    return result.aisdk.v5.toUIMessageStreamResponse;
+    return result.aisdk.v5.toUIMessageStreamResponse();
   } catch (error) {
     console.error("[Chat API] Error:", error);
     return new Response(

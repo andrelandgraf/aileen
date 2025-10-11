@@ -4,6 +4,7 @@ import { db } from "@/lib/db/db";
 import { projectsTable } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { ProjectChat } from "@/components/project-chat";
+import { FreestyleSandboxes } from "freestyle-sandboxes";
 
 interface ProjectPageProps {
   params: Promise<{
@@ -25,7 +26,27 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
     notFound();
   }
 
-  // Create custom domain for preview
+  // Request dev server to get ephemeral URL for preview
+  console.log("[Project Page] Requesting dev server for preview...");
+  console.log("[Project Page] This may take 20-30 seconds on cold start...");
+
+  const freestyle = new FreestyleSandboxes({
+    apiKey: process.env.FREESTYLE_API_KEY!,
+  });
+
+  const devServerResponse = await freestyle.requestDevServer({
+    repoId: project.repoId,
+  });
+
+  const { ephemeralUrl, codeServerUrl, isNew } = devServerResponse;
+
+  console.log("[Project Page] Dev server ready:", {
+    ephemeralUrl,
+    codeServerUrl,
+    isNew,
+  });
+
+  // Create custom domain for deployment URL
   const sanitizeDomain = (str: string) =>
     str
       .toLowerCase()
@@ -35,8 +56,8 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
 
   const projectSlug = sanitizeDomain(project.name);
   const userSlug = sanitizeDomain(user.displayName || user.id);
-  const customDomain = `${projectSlug}-${userSlug}.style.dev`;
-  const deploymentUrl = `https://${customDomain}`;
+  const deploymentDomain = `${projectSlug}-${userSlug}.style.dev`;
+  const deploymentUrl = `https://${deploymentDomain}`;
 
   console.log("[Project Page] Deployment URL:", deploymentUrl);
 
@@ -45,7 +66,9 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
       projectId={id}
       projectName={project.name}
       repoId={project.repoId}
-      previewUrl={deploymentUrl}
+      previewUrl={ephemeralUrl}
+      deploymentUrl={deploymentUrl}
+      codeServerUrl={codeServerUrl}
     />
   );
 }

@@ -19,9 +19,14 @@ export async function createNeonProject(
 
   const apiKey = process.env.NEON_API_KEY;
   invariant(apiKey, "NEON_API_KEY is required");
-  
+
   // Debug: Verify API key is loaded (show first/last 4 chars only)
-  console.log("[Neon] API key loaded:", apiKey ? `${apiKey.substring(0, 4)}...${apiKey.substring(apiKey.length - 4)}` : "NOT SET");
+  console.log(
+    "[Neon] API key loaded:",
+    apiKey
+      ? `${apiKey.substring(0, 4)}...${apiKey.substring(apiKey.length - 4)}`
+      : "NOT SET",
+  );
   console.log("[Neon] API key length:", apiKey?.length);
 
   const requestBody = { project: { name } };
