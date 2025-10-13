@@ -101,10 +101,11 @@ export async function POST(req: Request, { params }: RouteParams) {
     console.log("[Chat API] Creating Freestyle MCP client...");
     const freestyleMcp = new MCPClient({
       id: `freestyle-dev-${project.repoId}`,
+      timeout: 300000, // 5 minutes global timeout (matches maxDuration)
       servers: {
         freestyleDevServer: {
           url: new URL(mcpEphemeralUrl),
-          timeout: 180000, // 3 minutes timeout for dev server operations
+          timeout: 300000, // 5 minutes timeout for dev server operations
         },
       },
     });
@@ -113,9 +114,11 @@ export async function POST(req: Request, { params }: RouteParams) {
     console.log("[Chat API] Creating Neon MCP client...");
     const neonMcp = new MCPClient({
       id: `neon-${project.neonProjectId}`,
+      timeout: 300000, // 5 minutes global timeout (matches maxDuration)
       servers: {
         neon: {
           url: new URL("https://mcp.neon.tech/mcp"),
+          timeout: 300000, // 5 minutes timeout for Neon operations
           requestInit: {
             headers: {
               Authorization: `Bearer ${process.env.NEON_API_KEY}`,
