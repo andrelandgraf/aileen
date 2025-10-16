@@ -20,6 +20,7 @@ interface ProjectChatProps {
   previewUrl: string;
   deploymentUrl: string;
   codeServerUrl: string;
+  accessToken: string;
 }
 
 export const ProjectChat = ({
@@ -30,6 +31,7 @@ export const ProjectChat = ({
   previewUrl,
   deploymentUrl,
   codeServerUrl,
+  accessToken,
 }: ProjectChatProps) => {
   const [isDeploying, setIsDeploying] = useState(false);
 
@@ -64,6 +66,7 @@ export const ProjectChat = ({
     cloud,
     id: threadId, // Use the thread ID as the chat ID
     transport: new AssistantChatTransport({
+      // Use the Next.js API route for project-specific chat
       api: `/api/projects/${projectId}/chat`,
     }),
   });

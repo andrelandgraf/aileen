@@ -10,7 +10,11 @@ import { ThreadList } from "@/components/assistant-ui/thread-list";
 import { AssistantCloud } from "@assistant-ui/react";
 import { ProfileButton } from "@/components/profile-button";
 
-export const Assistant = () => {
+interface AssistantProps {
+  accessToken: string;
+}
+
+export const Assistant = ({ accessToken }: AssistantProps) => {
   const cloud = new AssistantCloud({
     baseUrl: process.env.NEXT_PUBLIC_ASSISTANT_BASE_URL!,
     authToken: () =>
@@ -22,7 +26,10 @@ export const Assistant = () => {
   const runtime = useChatRuntime({
     cloud,
     transport: new AssistantChatTransport({
-      api: "/my-custom-api/chat", // Custom API URL with forwarding
+      api: process.env.NEXT_PUBLIC_MASTRA_API_URL!,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
     }),
   });
 

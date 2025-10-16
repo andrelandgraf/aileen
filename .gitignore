@@ -13,6 +13,9 @@
 /.next/
 /out/
 
+#mastra
+.mastra/
+
 # production
 /build
 

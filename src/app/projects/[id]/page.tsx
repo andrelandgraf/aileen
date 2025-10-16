@@ -61,6 +61,13 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
 
   console.log("[Project Page] Deployment URL:", deploymentUrl);
 
+  // Get access token to pass to client component
+  const authJson = await user.getAuthJson();
+  if (!authJson.accessToken) {
+    throw new Error("No access token available");
+  }
+  const accessToken = authJson.accessToken;
+
   return (
     <ProjectChat
       projectId={id}
@@ -70,6 +77,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
       previewUrl={ephemeralUrl}
       deploymentUrl={deploymentUrl}
       codeServerUrl={codeServerUrl}
+      accessToken={accessToken}
     />
   );
 }

@@ -9,5 +9,5 @@ export const POST = async () => {
     workspaceId: user.id,
   });
   const { token } = await assistantCloud.auth.tokens.create();
-  return new Response(token);
+  return new Response(JSON.stringify({ token }), { status: 200 });
 };
