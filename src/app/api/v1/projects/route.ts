@@ -4,7 +4,7 @@ import { db } from "@/lib/db/db";
 import { projectsTable } from "@/lib/db/schema";
 import { freestyleService } from "@/lib/freestyle";
 import { createNeonProject } from "@/lib/neon/projects";
-import { createAssistantThread } from "@/lib/assistant-cloud";
+import { createAssistantThread } from "@/lib/assistant-ui";
 
 export async function POST(request: Request) {
   try {

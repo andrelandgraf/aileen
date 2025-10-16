@@ -1,9 +1,11 @@
 import { Mastra } from "@mastra/core";
 import { codegenAgent } from "./agents/codegenAgent";
+import { authenticateAndAuthorize } from "./lib/middleware";
 
 export const mastra = new Mastra({
   agents: { codegenAgent },
   server: {
+    middleware: [authenticateAndAuthorize],
     port: 4111,
     host: "localhost",
     cors: {

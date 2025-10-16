@@ -4,7 +4,8 @@ import { db } from "@/lib/db/db";
 import { projectsTable } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { ProjectChat } from "@/components/project-chat";
-import { FreestyleSandboxes } from "freestyle-sandboxes";
+import { getNeonConnectionUri } from "@/lib/neon/connection-uri";
+import { freestyleService } from "@/lib/freestyle";
 
 interface ProjectPageProps {
   params: Promise<{
@@ -30,12 +31,17 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
   console.log("[Project Page] Requesting dev server for preview...");
   console.log("[Project Page] This may take 20-30 seconds on cold start...");
 
-  const freestyle = new FreestyleSandboxes({
-    apiKey: process.env.FREESTYLE_API_KEY!,
+  // Get the database connection URI
+  const databaseUrl = await getNeonConnectionUri({
+    projectId: project.neonProjectId,
   });
 
-  const devServerResponse = await freestyle.requestDevServer({
+  // Request dev server using the freestyle service
+  const devServerResponse = await freestyleService.requestDevServer({
     repoId: project.repoId,
+    envVars: {
+      DATABASE_URL: databaseUrl,
+    },
   });
 
   const { ephemeralUrl, codeServerUrl, isNew } = devServerResponse;
@@ -74,7 +80,6 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
       projectName={project.name}
       repoId={project.repoId}
       threadId={project.threadId}
-      previewUrl={ephemeralUrl}
       deploymentUrl={deploymentUrl}
       codeServerUrl={codeServerUrl}
       accessToken={accessToken}

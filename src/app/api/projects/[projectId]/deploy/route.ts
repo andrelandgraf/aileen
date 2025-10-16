@@ -4,6 +4,7 @@ import { db } from "@/lib/db/db";
 import { projectsTable } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { FreestyleSandboxes } from "freestyle-sandboxes";
+import { getNeonConnectionUri } from "@/lib/neon/connection-uri";
 
 interface RouteParams {
   params: Promise<{
@@ -55,6 +56,11 @@ export async function POST(req: Request, { params }: RouteParams) {
 
     console.log("[Deploy API] Deploying to domain:", customDomain);
 
+    // Get the database connection URI
+    const databaseUrl = await getNeonConnectionUri({
+      projectId: project.neonProjectId,
+    });
+
     // Trigger deployment (async - don't await)
     freestyle
       .deployWeb(
@@ -64,7 +70,9 @@ export async function POST(req: Request, { params }: RouteParams) {
         },
         {
           domains: [customDomain],
-          envVars: {},
+          envVars: {
+            DATABASE_URL: databaseUrl,
+          },
           build: true,
         },
       )

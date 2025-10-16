@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 import { db } from "../src/lib/db/db";
-import { projectsTable } from "../src/lib/db/schema";
+import { projectsTable, usersTable } from "../src/lib/db/schema";
 import { eq } from "drizzle-orm";
 
 /**
@@ -31,13 +31,23 @@ async function getProjectContext(projectId: string) {
 
     console.log(`✅ Found project: ${project.name}\n`);
 
-    // Create the project context object
-    const projectContext = {
-      projectId: project.id,
-      projectName: project.name,
-      neonProjectId: project.neonProjectId,
-      repoId: project.repoId,
+    // Fetch user information
+    const [user] = await db
+      .select()
+      .from(usersTable)
+      .where(eq(usersTable.id, project.userId))
+      .limit(1);
+
+    // Create user context
+    const userContext = {
       userId: project.userId,
+      displayName: user?.displayName || null,
+    };
+
+    // Create runtime context with full project object and user context
+    const runtimeContext = {
+      project,
+      user: userContext,
     };
 
     // Output for Mastra playground
@@ -47,7 +57,7 @@ async function getProjectContext(projectId: string) {
 
     // Output as JSON that can be pasted
     console.log("RuntimeContext:");
-    console.log(JSON.stringify({ project: projectContext }, null, 2));
+    console.log(JSON.stringify(runtimeContext, null, 2));
 
     console.log("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     console.log("\n📝 How to use in Mastra Playground:");
@@ -63,16 +73,21 @@ async function getProjectContext(projectId: string) {
     console.log("   The playground doesn't create MCP clients dynamically.");
     console.log("   Use the Next.js app for full functionality.\n");
 
-    // Also output project details for reference
+    // Also output project and user details for reference
     console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-    console.log("📊 Project Details:");
+    console.log("📊 Context Details:");
     console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
-    console.log(`Name:            ${project.name}`);
-    console.log(`ID:              ${project.id}`);
-    console.log(`Neon Project:    ${project.neonProjectId}`);
-    console.log(`Repository:      ${project.repoId}`);
-    console.log(`User ID:         ${project.userId}`);
-    console.log(`Created:         ${project.createdAt}`);
+    console.log("Project:");
+    console.log(`  Name:            ${project.name}`);
+    console.log(`  ID:              ${project.id}`);
+    console.log(`  Neon Project:    ${project.neonProjectId}`);
+    console.log(`  Repository:      ${project.repoId}`);
+    console.log(`  Thread ID:       ${project.threadId}`);
+    console.log(`  Created:         ${project.createdAt}`);
+    console.log(`  Updated:         ${project.updatedAt}`);
+    console.log("\nUser:");
+    console.log(`  User ID:         ${userContext.userId}`);
+    console.log(`  Display Name:    ${userContext.displayName || "(none)"}`);
     console.log("");
 
     process.exit(0);

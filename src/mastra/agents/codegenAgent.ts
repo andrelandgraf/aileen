@@ -1,7 +1,8 @@
 import { anthropic } from "@ai-sdk/anthropic";
 import { Agent } from "@mastra/core/agent";
 import { RuntimeContext } from "@mastra/core/runtime-context";
-import type { CodegenRuntimeContext, ProjectContext } from "../lib/context";
+import type { CodegenRuntimeContext, UserContext } from "../lib/context";
+import type { Project } from "@/lib/db/schema";
 import { getCodegenTools } from "../lib/tools";
 
 /**
@@ -22,13 +23,22 @@ export const codegenAgent = new Agent({
     runtimeContext: RuntimeContext<CodegenRuntimeContext>;
   }) => getCodegenTools(runtimeContext),
   instructions: ({ runtimeContext }) => {
-    const project = runtimeContext.get("project") as ProjectContext | undefined;
+    const project = runtimeContext.get("project") as Project | undefined;
+    const user = runtimeContext.get("user") as UserContext | undefined;
 
     if (!project) {
       throw new Error(
         "Project context is required for codegen agent. " +
           "This agent must be called with RuntimeContext containing project data. " +
-          "Set runtimeContext.set('project', projectContext) before calling the agent.",
+          "Set runtimeContext.set('project', project) before calling the agent.",
+      );
+    }
+
+    if (!user) {
+      throw new Error(
+        "User context is required for codegen agent. " +
+          "This agent must be called with RuntimeContext containing user data. " +
+          "Set runtimeContext.set('user', userContext) before calling the agent.",
       );
     }
 
@@ -52,10 +62,11 @@ export const codegenAgent = new Agent({
       "- Implement proper error handling and loading states\n" +
       "- Follow modern React patterns (hooks, composition)\n\n" +
       `**Current Project Context:**\n` +
-      `- Project Name: ${project.projectName}\n` +
-      `- Project ID: ${project.projectId}\n` +
+      `- Project Name: ${project.name}\n` +
+      `- Project ID: ${project.id}\n` +
       `- Neon Project ID: ${project.neonProjectId}\n` +
-      `- Repository ID: ${project.repoId}\n\n` +
+      `- Repository ID: ${project.repoId}\n` +
+      `- User: ${user.displayName || user.userId}\n\n` +
       "**Your Mission:**\n" +
       "You are building a Next.js application. The existing app is in the /template directory. " +
       "Edit the app incrementally according to the user's requirements.\n\n" +

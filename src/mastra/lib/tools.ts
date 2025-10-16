@@ -17,7 +17,10 @@ export async function getCodegenTools(
   }
 
   // Create project-specific Freestyle MCP client
-  const freestyleMcp = await createFreestyleMcpClient(project.repoId);
+  const freestyleMcp = await createFreestyleMcpClient(
+    project.repoId,
+    project.neonProjectId,
+  );
 
   // Fetch tools in parallel
   const [freestyleTools, neonTools] = await Promise.all([

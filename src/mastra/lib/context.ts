@@ -1,17 +1,17 @@
+import type { Project } from "@/lib/db/schema";
+
 /**
- * Project context passed through RuntimeContext
+ * User context passed through RuntimeContext
  */
-export type ProjectContext = {
-  projectId: string;
-  projectName: string;
-  neonProjectId: string;
-  repoId: string;
+export type UserContext = {
   userId: string;
+  displayName: string | null;
 };
 
 /**
  * Runtime context type for the codegen agent
  */
 export type CodegenRuntimeContext = {
-  project: ProjectContext;
+  project: Project;
+  user: UserContext;
 };

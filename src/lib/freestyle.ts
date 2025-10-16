@@ -1,4 +1,5 @@
 import { FreestyleSandboxes } from "freestyle-sandboxes";
+import type { FreestyleDevServer } from "freestyle-sandboxes";
 
 interface CreateRepoParams {
   name: string;
@@ -7,6 +8,11 @@ interface CreateRepoParams {
 
 interface CreateRepoResponse {
   repoId: string;
+}
+
+interface RequestDevServerParams {
+  repoId: string;
+  envVars?: Record<string, string>;
 }
 
 export class FreestyleService {
@@ -53,6 +59,34 @@ export class FreestyleService {
       console.error("[Freestyle] Error creating repository:", error);
       throw new Error(
         `Failed to create Freestyle repo: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+
+  async requestDevServer({
+    repoId,
+    envVars,
+  }: RequestDevServerParams): Promise<FreestyleDevServer> {
+    console.log("[Freestyle] Requesting dev server for repo:", repoId);
+
+    try {
+      const devServerResponse = await this.freestyle.requestDevServer({
+        repoId,
+        envVars,
+      });
+
+      console.log("[Freestyle] Dev server response:", {
+        ephemeralUrl: devServerResponse.ephemeralUrl,
+        mcpEphemeralUrl: devServerResponse.mcpEphemeralUrl,
+        codeServerUrl: devServerResponse.codeServerUrl,
+        isNew: devServerResponse.isNew,
+      });
+
+      return devServerResponse;
+    } catch (error) {
+      console.error("[Freestyle] Error requesting dev server:", error);
+      throw new Error(
+        `Failed to request Freestyle dev server: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }

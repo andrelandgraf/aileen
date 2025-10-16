@@ -11,13 +11,14 @@ import { ProfileButton } from "@/components/profile-button";
 import { Button } from "@/components/ui/button";
 import { ExternalLink, Rocket, Code2 } from "lucide-react";
 import { useState } from "react";
+import { FreestyleDevServer } from "freestyle-sandboxes/react/dev-server";
+import { requestDevServer } from "@/actions/preview-actions";
 
 interface ProjectChatProps {
   projectId: string;
   projectName: string;
   repoId: string;
   threadId: string;
-  previewUrl: string;
   deploymentUrl: string;
   codeServerUrl: string;
   accessToken: string;
@@ -28,12 +29,16 @@ export const ProjectChat = ({
   projectName,
   repoId,
   threadId,
-  previewUrl,
   deploymentUrl,
   codeServerUrl,
   accessToken,
 }: ProjectChatProps) => {
   const [isDeploying, setIsDeploying] = useState(false);
+
+  // Wrap the action to include projectId
+  const wrappedRequestDevServer = async (args: { repoId: string }) => {
+    return await requestDevServer({ repoId: args.repoId, projectId });
+  };
 
   const handleDeploy = async () => {
     setIsDeploying(true);
@@ -64,10 +69,12 @@ export const ProjectChat = ({
 
   const runtime = useChatRuntime({
     cloud,
-    id: threadId, // Use the thread ID as the chat ID
+    id: threadId,
     transport: new AssistantChatTransport({
-      // Use the Next.js API route for project-specific chat
-      api: `/api/projects/${projectId}/chat`,
+      api: `${process.env.NEXT_PUBLIC_MASTRA_API_URL}?projectId=${projectId}`,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
     }),
   });
 
@@ -107,13 +114,11 @@ export const ProjectChat = ({
           <div className="flex-1 overflow-hidden border-r">
             <Thread />
           </div>
-          {/* Preview iframe side */}
+          {/* Preview side */}
           <div className="flex-1 overflow-hidden bg-muted">
-            <iframe
-              src={previewUrl}
-              className="h-full w-full border-0"
-              title="Preview"
-              sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
+            <FreestyleDevServer
+              actions={{ requestDevServer: wrappedRequestDevServer }}
+              repoId={repoId}
             />
           </div>
         </div>

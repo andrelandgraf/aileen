@@ -22,3 +22,4 @@ export type InsertUser = typeof usersTable.$inferInsert;
 export type SelectUser = typeof usersTable.$inferSelect;
 export type InsertProject = typeof projectsTable.$inferInsert;
 export type SelectProject = typeof projectsTable.$inferSelect;
+export type Project = SelectProject;

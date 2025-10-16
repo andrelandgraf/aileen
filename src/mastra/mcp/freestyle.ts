@@ -1,12 +1,24 @@
 import { MCPClient } from "@mastra/mcp";
-import { FreestyleSandboxes } from "freestyle-sandboxes";
+import { getNeonConnectionUri } from "@/lib/neon/connection-uri";
+import { freestyleService } from "@/lib/freestyle";
 
-const freestyle = new FreestyleSandboxes({
-  apiKey: process.env.FREESTYLE_API_KEY!,
-});
+export async function createFreestyleMcpClient(
+  repoId: string,
+  neonProjectId: string,
+) {
+  // Get the database connection URI
+  const databaseUrl = await getNeonConnectionUri({
+    projectId: neonProjectId,
+  });
 
-export async function createFreestyleMcpClient(repoId: string) {
-  const devServerResponse = await freestyle.requestDevServer({ repoId });
+  // Request dev server using the freestyle service
+  const devServerResponse = await freestyleService.requestDevServer({
+    repoId,
+    envVars: {
+      DATABASE_URL: databaseUrl,
+    },
+  });
+
   const { mcpEphemeralUrl } = devServerResponse;
 
   const mcpClient = new MCPClient({
