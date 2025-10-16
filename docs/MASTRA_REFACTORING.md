@@ -35,12 +35,15 @@ export const mastra = new Mastra({
   server: {
     port: 4111,
     host: "localhost",
-    cors: { /* ... */ }
-  }
+    cors: {
+      /* ... */
+    },
+  },
 });
 ```
 
 **Key Points:**
+
 - Single instance for the entire application
 - Agents are registered once at startup
 - Server configuration for local dev and Mastra playground
@@ -53,23 +56,24 @@ The agent uses RuntimeContext to access project-specific data dynamically:
 export const codegenAgent = new Agent({
   name: "codegen-agent",
   description: "Expert Next.js code generation assistant",
-  
+
   // Instructions function accesses RuntimeContext
   instructions: ({ runtimeContext }) => {
     const project = runtimeContext.get("project") as ProjectContext | undefined;
     // ... builds instructions with project data
   },
-  
+
   model: anthropic("claude-3-5-sonnet-20241022"),
-  
+
   defaultStreamOptions: {
     maxSteps: 10,
-    modelSettings: { temperature: 0.7 }
-  }
+    modelSettings: { temperature: 0.7 },
+  },
 });
 ```
 
 **Key Points:**
+
 - Instructions are a function that receives RuntimeContext
 - No tools are registered statically (uses dynamic toolsets pattern)
 - Project data is injected at runtime via RuntimeContext
@@ -80,19 +84,20 @@ Utility functions for creating project-specific MCP clients and getting toolsets
 
 ```typescript
 // Create Freestyle MCP client for a specific repo
-export async function createFreestyleMcpClient(repoId: string)
+export async function createFreestyleMcpClient(repoId: string);
 
 // Create Neon MCP client for a specific project
-export function createNeonMcpClient(neonProjectId: string)
+export function createNeonMcpClient(neonProjectId: string);
 
 // Get toolsets from both MCP clients
 export async function getProjectToolsets(
   freestyleMcp: MCPClient,
-  neonMcp: MCPClient
-)
+  neonMcp: MCPClient,
+);
 ```
 
 **Key Points:**
+
 - MCP clients are created per request (multi-tenant pattern)
 - `getToolsets()` is used instead of `getTools()` for dynamic configuration
 - Toolsets can be passed to agent methods at runtime
@@ -105,17 +110,17 @@ The Next.js API route that handles chat requests:
 export async function POST(req: Request, { params }: RouteParams) {
   // 1. Authenticate user
   const user = await stackServerApp.getUser();
-  
+
   // 2. Get project from database
   const [project] = await db.select()...
-  
+
   // 3. Create MCP clients
   const { mcpClient: freestyleMcp } = await createFreestyleMcpClient(project.repoId);
   const neonMcp = createNeonMcpClient(project.neonProjectId);
-  
+
   // 4. Get toolsets
   const toolsets = await getProjectToolsets(freestyleMcp, neonMcp);
-  
+
   // 5. Create RuntimeContext with project data
   const runtimeContext = new RuntimeContext();
   runtimeContext.set("project", {
@@ -125,7 +130,7 @@ export async function POST(req: Request, { params }: RouteParams) {
     repoId: project.repoId,
     userId: user.id
   });
-  
+
   // 6. Get registered agent and call with toolsets & context
   const agent = mastra.getAgent("codegenAgent");
   const result = await agent.stream(messages, {
@@ -133,13 +138,14 @@ export async function POST(req: Request, { params }: RouteParams) {
     runtimeContext,
     format: "aisdk"
   });
-  
+
   // 7. Return stream
   return result.toUIMessageStreamResponse();
 }
 ```
 
 **Key Points:**
+
 - Uses the registered agent from the Mastra instance
 - Creates project-specific MCP clients per request
 - Passes toolsets and RuntimeContext to the agent
@@ -160,6 +166,7 @@ const runtime = useChatRuntime({
 ```
 
 **Key Points:**
+
 - Points to the Next.js API route (not Mastra server directly)
 - Project ID is in the URL path
 - No authorization header needed (uses session cookies)
@@ -179,6 +186,7 @@ This starts the Mastra server on `http://localhost:4111`
 ### 2. Access the Playground
 
 Open your browser to:
+
 ```
 http://localhost:4111
 ```
@@ -188,6 +196,7 @@ http://localhost:4111
 Navigate to the Agents section and select `codegen-agent`.
 
 **Important**: When testing in the playground without project context:
+
 - The agent won't have MCP tools available (no toolsets provided)
 - Instructions will show the base instructions without project-specific context
 - You can test the agent's general capabilities and instruction format
@@ -195,6 +204,7 @@ Navigate to the Agents section and select `codegen-agent`.
 ### 4. Test with RuntimeContext (Advanced)
 
 To test with project context, you would need to:
+
 1. Use the Mastra API directly (not the playground UI)
 2. Create MCP clients and toolsets
 3. Pass RuntimeContext with project data
@@ -205,14 +215,16 @@ To test with project context, you would need to:
 The setup uses the **dynamic tools pattern** from Mastra:
 
 ### Static Tools Pattern (Not Used)
+
 ```typescript
 // Tools are registered with the agent at creation time
 const agent = new Agent({
-  tools: await mcpClient.getTools()
+  tools: await mcpClient.getTools(),
 });
 ```
 
 ### Dynamic Tools Pattern (Used)
+
 ```typescript
 // Agent has no static tools
 const agent = new Agent({
@@ -221,11 +233,12 @@ const agent = new Agent({
 
 // Tools are provided at call time
 const result = await agent.stream(messages, {
-  toolsets: await mcpClient.getToolsets()
+  toolsets: await mcpClient.getToolsets(),
 });
 ```
 
 **Why Dynamic Tools?**
+
 - Multi-tenant: Each project has its own MCP servers (different repoId, neonProjectId)
 - Isolated: Projects can't access each other's tools
 - Flexible: Tool configuration can change per request
@@ -253,10 +266,11 @@ runtimeContext.set("project", projectData);
 instructions: ({ runtimeContext }) => {
   const project = runtimeContext.get("project") as ProjectContext;
   // Use project data in instructions
-}
+};
 ```
 
 **Benefits:**
+
 - Single agent definition for all projects
 - Project-specific instructions without creating multiple agents
 - Type-safe context data
@@ -313,13 +327,17 @@ NEXT_PUBLIC_ASSISTANT_BASE_URL=your_assistant_cloud_url
 ## Deployment Considerations
 
 ### Next.js App Deployment
+
 The Next.js app (with API routes) can be deployed to:
+
 - Vercel
 - Any Node.js hosting platform
 - Serverless platforms (with appropriate adapters)
 
 ### Mastra Server Deployment
+
 The standalone Mastra server can be deployed to:
+
 - Mastra Cloud (recommended for production)
 - Any Node.js hosting platform
 - Containerized environments
@@ -329,20 +347,25 @@ The standalone Mastra server can be deployed to:
 ## Troubleshooting
 
 ### Agent Has No Tools in Playground
+
 **Issue**: When testing in the playground, the agent doesn't have access to MCP tools.
 **Solution**: This is expected. MCP tools are provided dynamically via toolsets in the API route. Test the full flow through the Next.js app instead.
 
 ### RuntimeContext Data Not Available
+
 **Issue**: Project data is undefined in agent instructions.
 **Solution**: Ensure you're passing RuntimeContext with project data when calling the agent. Check the API route implementation.
 
 ### Type Errors with Toolsets
+
 **Issue**: TypeScript errors about toolsets type.
 **Solution**: Cast toolsets as `any` when passing to agent methods. The Mastra types for toolsets are still evolving.
 
 ### MCP Client Connection Issues
+
 **Issue**: MCP clients fail to connect or timeout.
-**Solution**: 
+**Solution**:
+
 - Check API keys are set correctly
 - Verify network connectivity
 - Freestyle dev servers may take 20-30 seconds on cold start
@@ -351,6 +374,7 @@ The standalone Mastra server can be deployed to:
 ## Next Steps
 
 Potential improvements:
+
 1. Add proper error handling and retry logic for MCP client creation
 2. Implement caching for MCP client connections (per project)
 3. Add telemetry and logging for monitoring
@@ -367,4 +391,3 @@ Potential improvements:
 - [Dynamic Tools with MCPClient](https://mastra.ai/docs/tools-mcp/mcp-overview#dynamic-tools)
 - [Freestyle MCP Setup](./FREESTYLE_MCP_SETUP.md)
 - [Agents Documentation](./MASTRA_AGENTS.md)
-

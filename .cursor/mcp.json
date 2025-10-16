@@ -1,19 +1,15 @@
 {
-"mcpServers": {
-  "mastra-docs": {
-    "type": "stdio",
-    "command": "npx",
-    "args": ["-y", "@mastra/mcp-docs-server"]
+  "mcpServers": {
+    "mastra-docs": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@mastra/mcp-docs-server"]
     }
   },
   "freestyle-docs": {
     "name": "freestyle-documentation",
     "command": "npx",
-    "args": [
-      "-y",
-      "mcp-remote",
-      "https://docs.freestyle.sh/api/mcp/mcp"
-    ],
+    "args": ["-y", "mcp-remote", "https://docs.freestyle.sh/api/mcp/mcp"],
     "env": {}
   },
   "Neon": {

@@ -1,46 +1,37 @@
 import { anthropic } from "@ai-sdk/anthropic";
 import { Agent } from "@mastra/core/agent";
-
-/**
- * Type definition for project runtime context
- */
-export type ProjectContext = {
-  projectId: string;
-  projectName: string;
-  neonProjectId: string;
-  repoId: string;
-  userId: string;
-};
+import { RuntimeContext } from "@mastra/core/runtime-context";
+import type { CodegenRuntimeContext, ProjectContext } from "../lib/context";
+import { getCodegenTools } from "../lib/tools";
 
 /**
  * Codegen Agent
- * 
- * This agent uses dynamic tools (MCP servers) that are provided at runtime
- * via the toolsets option. Project-specific context is injected via RuntimeContext.
- * 
- * To use this agent:
- * 1. Create Freestyle and Neon MCP clients for the project
- * 2. Get toolsets from the MCP clients
- * 3. Pass project context via RuntimeContext
- * 4. Call agent.generate() or agent.stream() with toolsets option
+ *
+ * Tools are composed dynamically from RuntimeContext:
+ * - Freestyle tools (project-specific, based on repoId)
+ * - Neon tools (shared, org-scoped)
  */
 export const codegenAgent = new Agent({
   name: "codegen-agent",
-  description: "Expert Next.js code generation assistant specializing in modern full-stack applications",
-  
-  // Instructions can access RuntimeContext to inject project-specific data
+  description:
+    "Expert Next.js code generation assistant specializing in modern full-stack applications with database management capabilities",
+
+  tools: ({
+    runtimeContext,
+  }: {
+    runtimeContext: RuntimeContext<CodegenRuntimeContext>;
+  }) => getCodegenTools(runtimeContext),
   instructions: ({ runtimeContext }) => {
     const project = runtimeContext.get("project") as ProjectContext | undefined;
-    
-    // ASSERTION: Project context must be provided
+
     if (!project) {
       throw new Error(
         "Project context is required for codegen agent. " +
-        "This agent must be called with RuntimeContext containing project data. " +
-        "Set runtimeContext.set('project', projectContext) before calling the agent."
+          "This agent must be called with RuntimeContext containing project data. " +
+          "Set runtimeContext.set('project', projectContext) before calling the agent.",
       );
     }
-    
+
     return (
       "You are Aileen, an expert Next.js code generation assistant. " +
       "You specialize in building modern, production-ready Next.js applications using the following stack:\n\n" +
@@ -90,11 +81,10 @@ export const codegenAgent = new Agent({
       "Remember: NO CHANGE IS COMPLETE WITHOUT A COMMIT. Always end your work with a git commit."
     );
   },
-  
+
   model: anthropic("claude-3-5-sonnet-20241022"),
-  
-  // Default generation options
+
   defaultStreamOptions: {
-    maxSteps: 10, // Allow multiple tool calls for complex operations
+    maxSteps: 50,
   },
 });

@@ -9,7 +9,7 @@ import { Thread } from "@/components/assistant-ui/thread";
 import { AssistantCloud } from "@assistant-ui/react";
 import { ProfileButton } from "@/components/profile-button";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, Rocket } from "lucide-react";
+import { ExternalLink, Rocket, Code2 } from "lucide-react";
 import { useState } from "react";
 
 interface ProjectChatProps {
@@ -79,6 +79,14 @@ export const ProjectChat = ({
             <h1 className="text-lg font-semibold">{projectName}</h1>
           </div>
           <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => window.open(codeServerUrl, "_blank")}
+            >
+              <Code2 className="h-4 w-4 mr-2" />
+              View Code
+            </Button>
             <Button
               variant="outline"
               size="sm"

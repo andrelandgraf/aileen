@@ -4,12 +4,11 @@ import { db } from "@/lib/db/db";
 import { projectsTable } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { mastra } from "@/mastra";
-import {
-  createFreestyleMcpClient,
-  createNeonMcpClient,
-  getProjectToolsets,
-} from "@/mastra/lib/mcp-clients";
-import type { ProjectContext } from "@/mastra/agents/codegenAgent";
+import { getCodegenTools } from "@/mastra/lib/tools";
+import type {
+  ProjectContext,
+  CodegenRuntimeContext,
+} from "@/mastra/lib/context";
 
 // Allow streaming responses up to 5 minutes (dev server operations can be slow)
 export const maxDuration = 300;
@@ -22,14 +21,17 @@ interface RouteParams {
 
 /**
  * Project-specific chat API route
- * 
+ *
  * This route:
  * 1. Authenticates the user and verifies project ownership
- * 2. Creates MCP clients for Freestyle and Neon (project-specific)
- * 3. Gets toolsets from MCP clients for dynamic tool configuration
- * 4. Creates RuntimeContext with project data
+ * 2. Creates Freestyle MCP client (project-specific)
+ * 3. Gets toolsets from Freestyle MCP client for dynamic tool configuration
+ * 4. Creates RuntimeContext with project data (includes Neon project ID for agent context)
  * 5. Calls the registered agent with toolsets and runtime context
  * 6. Streams the response back to the client
+ *
+ * Note: Neon MCP tools are shared across all projects (org-scoped).
+ * The agent uses the project ID from RuntimeContext to focus on the right project.
  */
 export async function POST(req: Request, { params }: RouteParams) {
   try {
@@ -50,10 +52,9 @@ export async function POST(req: Request, { params }: RouteParams) {
 
     if (!process.env.NEON_API_KEY) {
       console.error("[Chat API] NEON_API_KEY not set!");
-      return new Response(
-        "Server configuration error: NEON_API_KEY not set",
-        { status: 500 },
-      );
+      return new Response("Server configuration error: NEON_API_KEY not set", {
+        status: 500,
+      });
     }
 
     // Verify user authentication and project ownership
@@ -75,41 +76,25 @@ export async function POST(req: Request, { params }: RouteParams) {
       return new Response("Project not found", { status: 404 });
     }
 
-    console.log("[Chat API] Project found:", project.name);
-    console.log("[Chat API] RepoId:", project.repoId);
-
-    // Create MCP clients for this specific project
-    const { mcpClient: freestyleMcp, devServerInfo } =
-      await createFreestyleMcpClient(project.repoId);
-    const neonMcp = createNeonMcpClient(project.neonProjectId);
-
-    console.log("[Chat API] Dev server info:", devServerInfo);
-
-    // Get toolsets from MCP clients (dynamic tools pattern)
-    const toolsets = await getProjectToolsets(freestyleMcp, neonMcp);
-    console.log("[Chat API] Toolsets loaded");
-
     // Create RuntimeContext with project data
-    const runtimeContext = new RuntimeContext();
-    const projectContext: ProjectContext = {
+    // Tools will be composed automatically from this context
+    const runtimeContext = new RuntimeContext<CodegenRuntimeContext>();
+    runtimeContext.set("project", {
       projectId: project.id,
       projectName: project.name,
       neonProjectId: project.neonProjectId,
       repoId: project.repoId,
       userId: user.id,
-    };
-    runtimeContext.set("project", projectContext);
-
-    console.log("[Chat API] Streaming with agent...");
+    });
 
     // Get the registered agent from Mastra instance
     const agent = mastra.getAgent("codegenAgent");
 
-    // Call agent with dynamic toolsets and runtime context
+    // Call agent with runtime context
+    // Tools are composed dynamically from the context
     const result = await agent.stream(messages, {
-      toolsets: toolsets as any, // Dynamic tools for this project
-      runtimeContext, // Project-specific context
-      format: "aisdk", // Use AI SDK v5 format for compatibility
+      runtimeContext,
+      format: "aisdk",
     });
 
     // Return stream response

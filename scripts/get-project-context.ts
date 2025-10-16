@@ -5,10 +5,10 @@ import { eq } from "drizzle-orm";
 
 /**
  * Script to get project context for testing in Mastra playground
- * 
+ *
  * Usage:
  *   bun scripts/get-project-context.ts <project-id>
- * 
+ *
  * Example:
  *   bun scripts/get-project-context.ts 237a7950-c7e3-4eee-9545-a4ec43665e1a
  */
@@ -55,7 +55,9 @@ async function getProjectContext(projectId: string) {
     console.log("   2. Open http://localhost:4111");
     console.log("   3. Navigate to Agents > codegen-agent");
     console.log("   4. In the Runtime Context section, paste the JSON above");
-    console.log("   5. You can now test the agent with project-specific context!\n");
+    console.log(
+      "   5. You can now test the agent with project-specific context!\n",
+    );
 
     console.log("⚠️  Note: MCP tools won't be available in the playground");
     console.log("   The playground doesn't create MCP clients dynamically.");
@@ -88,10 +90,11 @@ if (!projectId) {
   console.log("\nUsage:");
   console.log("  bun scripts/get-project-context.ts <project-id>");
   console.log("\nExample:");
-  console.log("  bun scripts/get-project-context.ts 237a7950-c7e3-4eee-9545-a4ec43665e1a\n");
+  console.log(
+    "  bun scripts/get-project-context.ts 237a7950-c7e3-4eee-9545-a4ec43665e1a\n",
+  );
   process.exit(1);
 }
 
 // Run the script
 getProjectContext(projectId);
-

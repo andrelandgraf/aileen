@@ -1,10 +1,6 @@
 import { Mastra } from "@mastra/core";
 import { codegenAgent } from "./agents/codegenAgent";
 
-/**
- * Main Mastra instance
- * Registers agents and configures server settings
- */
 export const mastra = new Mastra({
   agents: { codegenAgent },
   server: {
