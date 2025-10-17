@@ -31,6 +31,9 @@ export const mastra = new Mastra({
       chatRoute({
         path: "/codegen",
         agent: "codegenAgent",
+        defaultOptions: {
+          maxSteps: 50,
+        },
       }),
     ],
   },
