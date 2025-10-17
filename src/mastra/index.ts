@@ -9,10 +9,6 @@ export const mastra = new Mastra({
     middleware: [
       {
         handler: auth,
-        path: "/api",
-      },
-      {
-        handler: auth,
         path: "/codegen",
       },
     ],
