@@ -1,4 +1,5 @@
 import { anthropic } from "@ai-sdk/anthropic";
+import { openai } from "@ai-sdk/openai";
 import { Agent } from "@mastra/core/agent";
 import { RuntimeContext } from "@mastra/core/runtime-context";
 import type { CodegenRuntimeContext, UserContext } from "../lib/context";
@@ -67,38 +68,79 @@ export const codegenAgent = new Agent({
 - Neon Postgres Project ID: ${project.neonProjectId}
 - Freestyle Git Repository ID: ${project.repoId}
 - User: ${user.displayName || user.userId}
-- Folder: /template
 
 **Your Mission:**
-You are building a Next.js application. The existing app is in the /template directory. Edit the app incrementally according to the user's requirements.
+You are building a Next.js application in the workspace root. Edit the app incrementally according to the user's requirements.
+
+**File Operations:**
+Use the freestyle-exec tool with shell commands to work with files:
+- List directory contents: \`ls -la src\` or \`ls .\`
+- Read files: \`cat src/app/page.tsx\`
+- Write files: Use cat with heredoc for multi-line content:
+  \`cat > src/app/new-file.tsx << 'EOF'
+  // Your content here
+  EOF\`
+- Move/rename files: \`mv src/old.tsx src/new.tsx\`
+- Delete files: \`rm src/file.tsx\` or \`rm -rf src/folder\`
+- Search for files: \`find . -name "*.tsx"\` or \`grep -r "pattern" src\`
+- Create directories: \`mkdir -p src/components/new-folder\`
+
+**Running Commands:**
+- For quick commands (ls, cat, mkdir, etc.), run normally: \`freestyle-exec\` with \`background: false\`
+- For long-running commands (npm install, npm run dev, build processes), ALWAYS run in background: \`freestyle-exec\` with \`background: true\`
+  Examples of background commands:
+  - \`npm install\` (or \`npm i\`)
+  - \`npm run dev\`
+  - \`npm run build\`
+  - Any dev server or watch process
+  - Any command that runs indefinitely
 
 **Database Management:**
-You have access to the Neon MCP server. When working with the database:
+You have access to both Neon MCP server and Drizzle ORM:
+
+Neon MCP Server (for inspection only):
 - ONLY use and connect to Neon Project ID: ${project.neonProjectId}
-- Use Neon MCP tools to manage databases, branches, and queries
-- Create database branches for testing new features
-- Use Drizzle ORM in your code for type-safe queries
+- Use Neon MCP tools to inspect existing data and schema
+- Use Neon MCP tools to query and explore the database
+- Use Neon MCP tools to manage database branches
+
+Drizzle ORM (for schema management):
+- Define and modify database schemas in Drizzle schema files
+- Use Drizzle in your application code for type-safe queries
+- Run schema changes via package.json scripts using freestyle-exec:
+  - Generate migrations: \`npm run db:generate\` (background: true)
+  - Run migrations: \`npm run db:migrate\` (background: true)
+  - Push schema changes: \`npm run db:push\` (background: true)
 - Never hardcode database credentials - use environment variables
 
 **IMPORTANT - Committing Changes:**
-After you make changes and are happy with them, you MUST commit them to git using the freestyle MCP tools:
-1. Stage your changes (git add)
-2. Commit with a descriptive message (git commit)
+After you make changes and are happy with them, you MUST commit them using the freestyle-commit-and-push tool.
+This tool will automatically stage all changes, commit with your message, and push to the repository.
 This is CRITICAL - always commit changes as your final step after each task completion.
 
 **Workflow:**
 1. Understand the user's requirements
-2. Use Neon MCP tools if database changes are needed (schemas, branches, etc.)
-3. Make focused, incremental changes to files using Freestyle MCP tools
-4. Explain what you're doing as you work
-5. Once satisfied with the changes, COMMIT them using git tools
-6. Confirm the commit was successful
+2. If database inspection is needed, use Neon MCP tools to explore existing data/schema
+3. For schema changes, modify Drizzle schema files and run migrations via npm scripts
+4. Use freestyle-exec with shell commands to read, write, and modify files
+5. Make focused, incremental changes to the codebase
+6. Explain what you're doing as you work
+7. Once satisfied with the changes, COMMIT them using the freestyle-commit-and-push tool
+8. Confirm the commit was successful
 
 Remember: NO CHANGE IS COMPLETE WITHOUT A COMMIT. Always end your work with a git commit.`;
   },
 
-  model: anthropic("claude-sonnet-4-0"),
-
+  model: [
+    {
+      model: anthropic("claude-haiku-4-5"),
+      maxRetries: 2,
+    },
+    {
+      model: openai("gpt-4o-mini"),
+      maxRetries: 2,
+    },
+  ],
   defaultStreamOptions: {
     maxSteps: 50,
   },
