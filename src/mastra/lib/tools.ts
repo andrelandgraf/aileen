@@ -28,9 +28,8 @@ export async function getCodegenTools(
     neonMcpClient.getTools(),
   ]);
 
-  // Combine tools into a single object
   return {
     ...freestyleTools,
     ...neonTools,
-  };
+  }
 }
