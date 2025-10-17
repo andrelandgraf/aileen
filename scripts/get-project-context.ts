@@ -41,7 +41,7 @@ async function getProjectContext(projectId: string) {
     // Create user context
     const userContext = {
       userId: project.userId,
-      displayName: user?.displayName || null,
+      displayName: user?.name || null,
     };
 
     // Create runtime context with full project object and user context
