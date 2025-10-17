@@ -1,4 +1,5 @@
 import { Mastra } from "@mastra/core";
+import { chatRoute } from "@mastra/ai-sdk";
 import { codegenAgent } from "./agents/codegenAgent";
 import { authenticateAndAuthorize } from "./lib/middleware";
 
@@ -17,6 +18,12 @@ export const mastra = new Mastra({
       allowHeaders: ["Content-Type", "Authorization"],
       credentials: true,
     },
+    apiRoutes: [
+      chatRoute({
+        path: "/codegen",
+        agent: "codegenAgent",
+      }),
+    ],
   },
 });
 

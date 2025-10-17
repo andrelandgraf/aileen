@@ -7,16 +7,15 @@ import type { UserContext } from "./context";
 
 export async function authenticateAndAuthorize(c: Context, next: Next) {
   try {
-    const url = new URL(c.req.url);
-    if (!url.pathname.includes("/api/agents/codegenAgent/stream")) {
+    // Get RuntimeContext and populate with project and user data
+    const runtimeContext = c.get("runtimeContext");
+    if (runtimeContext.get("project") && runtimeContext.get("user")) {
+      console.log("[Mastra Auth] RuntimeContext already populated");
       return await next();
     }
 
-    // Get RuntimeContext and populate with project and user data
-    const runtimeContext = c.get("runtimeContext");
-    console.log("[Mastra Auth] RuntimeContext:", runtimeContext);
-    if (runtimeContext.get("project") && runtimeContext.get("user")) {
-      console.log("[Mastra Auth] RuntimeContext already populated");
+    const url = new URL(c.req.url);
+    if (url.pathname !== "/codegen") {
       return await next();
     }
 

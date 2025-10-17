@@ -32,7 +32,7 @@ export async function getCodegenTools(
   ]);
 
   return {
-    ...freestyleTools,
+    //...freestyleTools,
     ...neonTools,
     ...context7Tools,
   };
