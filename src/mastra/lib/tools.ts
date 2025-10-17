@@ -1,7 +1,9 @@
 import { RuntimeContext } from "@mastra/core/runtime-context";
 import { createFreestyleMcpClient } from "../mcp/freestyle";
 import { neonMcpClient } from "../mcp/neon";
+import { context7McpClient } from "../mcp/context7";
 import type { CodegenRuntimeContext } from "./context";
+import { anthropic } from "@ai-sdk/anthropic";
 
 /**
  * Get composed tools for the codegen agent
@@ -23,13 +25,15 @@ export async function getCodegenTools(
   );
 
   // Fetch tools in parallel
-  const [freestyleTools, neonTools] = await Promise.all([
+  const [freestyleTools, neonTools, context7Tools] = await Promise.all([
     freestyleMcp.getTools(),
     neonMcpClient.getTools(),
+    context7McpClient.getTools(),
   ]);
 
   return {
     ...freestyleTools,
     ...neonTools,
-  }
+    ...context7Tools,
+  };
 }
