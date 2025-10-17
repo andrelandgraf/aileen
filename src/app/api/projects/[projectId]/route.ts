@@ -5,6 +5,7 @@ import { projectsTable } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { FreestyleSandboxes } from "freestyle-sandboxes";
 import { deleteNeonProject } from "@/lib/neon/projects";
+import { deleteAssistantThread } from "@/lib/assistant-ui";
 
 interface RouteParams {
   params: Promise<{
@@ -40,6 +41,7 @@ export async function DELETE(req: Request, { params }: RouteParams) {
     console.log("[DELETE Project] Deleting project:", project.name);
     console.log("[DELETE Project] RepoId:", project.repoId);
     console.log("[DELETE Project] NeonProjectId:", project.neonProjectId);
+    console.log("[DELETE Project] ThreadId:", project.threadId);
 
     // Initialize Freestyle
     const freestyle = new FreestyleSandboxes({
@@ -64,6 +66,19 @@ export async function DELETE(req: Request, { params }: RouteParams) {
     } catch (error) {
       console.error("[DELETE Project] Error deleting Neon project:", error);
       // Continue with deletion even if Neon fails
+    }
+
+    // Delete Assistant UI thread
+    console.log("[DELETE Project] Deleting Assistant UI thread...");
+    try {
+      await deleteAssistantThread(user.id, project.threadId);
+      console.log("[DELETE Project] Assistant UI thread deleted successfully");
+    } catch (error) {
+      console.error(
+        "[DELETE Project] Error deleting Assistant UI thread:",
+        error,
+      );
+      // Continue with deletion even if Assistant UI fails
     }
 
     // Delete from database

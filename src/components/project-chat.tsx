@@ -10,7 +10,7 @@ import { AssistantCloud } from "@assistant-ui/react";
 import { ProfileButton } from "@/components/profile-button";
 import { Button } from "@/components/ui/button";
 import { ExternalLink, Rocket, Code2 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { FreestyleDevServer } from "freestyle-sandboxes/react/dev-server";
 import { requestDevServer } from "@/actions/preview-actions";
 
@@ -69,7 +69,6 @@ export const ProjectChat = ({
 
   const runtime = useChatRuntime({
     cloud,
-    id: threadId,
     transport: new AssistantChatTransport({
       api: `${process.env.NEXT_PUBLIC_MASTRA_API_URL}?projectId=${projectId}`,
       headers: {
@@ -77,6 +76,17 @@ export const ProjectChat = ({
       },
     }),
   });
+
+  // useEffect(() => {
+  //   async function switchToThread() {
+  //     try {
+  //       await runtime.threads.switchToThread(threadId);
+  //     } catch (error) {
+  //       console.error("[ProjectChat] Error switching to thread:", error);
+  //     }
+  //   }
+  //   switchToThread();
+  // }, [runtime, threadId]);
 
   return (
     <AssistantRuntimeProvider runtime={runtime}>

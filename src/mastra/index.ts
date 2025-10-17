@@ -1,12 +1,21 @@
 import { Mastra } from "@mastra/core";
 import { chatRoute } from "@mastra/ai-sdk";
 import { codegenAgent } from "./agents/codegenAgent";
-import { authenticateAndAuthorize } from "./lib/middleware";
+import { auth } from "./lib/middleware";
 
 export const mastra = new Mastra({
   agents: { codegenAgent },
   server: {
-    middleware: [authenticateAndAuthorize],
+    middleware: [
+      {
+        handler: auth,
+        path: "/api",
+      },
+      {
+        handler: auth,
+        path: "/codegen",
+      },
+    ],
     port: 4111,
     host: "localhost",
     cors: {

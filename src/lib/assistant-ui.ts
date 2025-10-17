@@ -28,3 +28,22 @@ export async function createAssistantThread(
 
   return threadId;
 }
+
+export async function deleteAssistantThread(
+  userId: string,
+  threadId: string,
+): Promise<void> {
+  console.log("[AssistantCloud] Deleting thread:", threadId);
+
+  const assistantCloud = new AssistantCloud({
+    apiKey: process.env.ASSISTANT_API_KEY!,
+    userId: userId,
+    workspaceId: userId,
+  });
+
+  invariant(assistantCloud, "AssistantCloud not initialized");
+
+  await assistantCloud.threads.delete(threadId);
+
+  console.log("[AssistantCloud] Thread deleted successfully");
+}

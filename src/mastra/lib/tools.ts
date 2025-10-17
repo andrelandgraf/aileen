@@ -3,7 +3,6 @@ import { createFreestyleMcpClient } from "../mcp/freestyle";
 import { neonMcpClient } from "../mcp/neon";
 import { context7McpClient } from "../mcp/context7";
 import type { CodegenRuntimeContext } from "./context";
-import { anthropic } from "@ai-sdk/anthropic";
 
 /**
  * Get composed tools for the codegen agent
@@ -26,13 +25,13 @@ export async function getCodegenTools(
 
   // Fetch tools in parallel
   const [freestyleTools, neonTools, context7Tools] = await Promise.all([
-    freestyleMcp.getTools(),
+    freestyleMcp.tools(),
     neonMcpClient.getTools(),
     context7McpClient.getTools(),
   ]);
 
   return {
-    //...freestyleTools,
+    ...freestyleTools,
     ...neonTools,
     ...context7Tools,
   };

@@ -176,6 +176,7 @@ export function ProjectsList({ projects }: ProjectsListProps) {
                   <li>The project record</li>
                   <li>The Freestyle git repository</li>
                   <li>The Neon database project</li>
+                  <li>The assistant chat thread</li>
                 </ul>
                 <p className="mt-2">This action cannot be undone.</p>
               </div>

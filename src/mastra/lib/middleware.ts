@@ -5,17 +5,12 @@ import { eq, and } from "drizzle-orm";
 import type { Context, Next } from "hono";
 import type { UserContext } from "./context";
 
-export async function authenticateAndAuthorize(c: Context, next: Next) {
+export async function auth(c: Context, next: Next) {
   try {
     // Get RuntimeContext and populate with project and user data
     const runtimeContext = c.get("runtimeContext");
     if (runtimeContext.get("project") && runtimeContext.get("user")) {
       console.log("[Mastra Auth] RuntimeContext already populated");
-      return await next();
-    }
-
-    const url = new URL(c.req.url);
-    if (url.pathname !== "/codegen") {
       return await next();
     }
 
