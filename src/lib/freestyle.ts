@@ -90,7 +90,6 @@ export class FreestyleService {
       );
     }
   }
-
 }
 
 export const freestyleService = new FreestyleService(

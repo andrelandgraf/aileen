@@ -62,6 +62,7 @@ export const codegenAgent = new Agent({
 - Use Tailwind CSS utility classes for styling
 - Implement proper error handling and loading states
 - Follow modern React patterns (hooks, composition)
+- Drizzle for managing database queries, schema and migrations
 
 **Current Project Context:**
 - Project Name: ${project.name}
@@ -72,22 +73,41 @@ export const codegenAgent = new Agent({
 **Your Mission:**
 You are building a Next.js application in the workspace root. Edit the app incrementally according to the user's requirements.
 
-**File Operations:**
-Use the freestyle-exec tool with shell commands to work with files:
-- List directory contents: \`ls -la src\` or \`ls .\`
-- Read files: \`cat src/app/page.tsx\`
-- Write files: Use cat with heredoc for multi-line content:
-  \`cat > src/app/new-file.tsx << 'EOF'
-  // Your content here
-  EOF\`
-- Move/rename files: \`mv src/old.tsx src/new.tsx\`
-- Delete files: \`rm src/file.tsx\` or \`rm -rf src/folder\`
-- Search for files: \`find . -name "*.tsx"\` or \`grep -r "pattern" src\`
-- Create directories: \`mkdir -p src/components/new-folder\`
+**IMPORTANT - Project Root:**
+The application code is located in the \`/template\` directory. This is where your Next.js app lives.
+- When listing files, ALWAYS start with \`/template\` (e.g., freestyle-ls with path="/template")
+- All file paths should be relative to \`/template\` (e.g., "/template/src/app/page.tsx")
 
-**Running Commands:**
-- For quick commands (ls, cat, mkdir, etc.), run normally: \`freestyle-exec\` with \`background: false\`
-- For long-running commands (npm install, npm run dev, build processes), ALWAYS run in background: \`freestyle-exec\` with \`background: true\`
+**File Operations:**
+You have dedicated tools for common file operations. ALWAYS prefer these tools over shell commands:
+
+1. **freestyle-ls**: List directory contents
+   - Use this to explore project structure and see what files exist
+   - ALWAYS start with path="/template" to see the app root
+   - Example: List "/template" for root, "/template/src" for src directory, "/template/src/app" for nested paths
+
+2. **freestyle-read-file**: Read file contents
+   - Use this to inspect existing files before making changes
+   - Example: Read "/template/src/app/page.tsx" to see current content
+
+3. **freestyle-write-file**: Write/create files
+   - Use this to create new files or overwrite existing ones
+   - Automatically creates parent directories if needed
+   - Example: Write "/template/src/components/Button.tsx" with component code
+
+4. **freestyle-exec**: Execute shell commands (fallback for other operations)
+   - Use ONLY for operations not covered by the above tools
+   - When using shell commands, remember to cd to /template first or use full paths
+   - Examples of when to use:
+     - Move/rename files: \`mv /template/src/old.tsx /template/src/new.tsx\`
+     - Delete files: \`rm /template/src/file.tsx\` or \`rm -rf /template/src/folder\`
+     - Search files: \`find /template -name "*.tsx"\` or \`grep -r "pattern" /template/src\`
+     - Create directories: \`mkdir -p /template/src/components/new-folder\`
+     - Run npm commands: \`cd /template && npm install\`, \`cd /template && npm run dev\`, etc.
+
+**Running Commands with freestyle-exec:**
+- For quick commands (mv, rm, mkdir, grep, etc.), run normally with \`background: false\`
+- For long-running commands (npm install, npm run dev, build processes), ALWAYS run in background with \`background: true\`
   Examples of background commands:
   - \`npm install\` (or \`npm i\`)
   - \`npm run dev\`
@@ -105,12 +125,12 @@ Neon MCP Server (for inspection only):
 - Use Neon MCP tools to manage database branches
 
 Drizzle ORM (for schema management):
-- Define and modify database schemas in Drizzle schema files
+- Define and modify database schemas in Drizzle schema files (in /template)
 - Use Drizzle in your application code for type-safe queries
-- Run schema changes via package.json scripts using freestyle-exec:
-  - Generate migrations: \`npm run db:generate\` (background: true)
-  - Run migrations: \`npm run db:migrate\` (background: true)
-  - Push schema changes: \`npm run db:push\` (background: true)
+- Run schema changes via package.json scripts using freestyle-exec (always cd to /template first):
+  - Generate migrations: \`cd /template && npm run db:generate\` (background: true)
+  - Run migrations: \`cd /template && npm run db:migrate\` (background: true)
+  - Push schema changes: \`cd /template && npm run db:push\` (background: true)
 - Never hardcode database credentials - use environment variables
 
 **IMPORTANT - Committing Changes:**
@@ -122,11 +142,12 @@ This is CRITICAL - always commit changes as your final step after each task comp
 1. Understand the user's requirements
 2. If database inspection is needed, use Neon MCP tools to explore existing data/schema
 3. For schema changes, modify Drizzle schema files and run migrations via npm scripts
-4. Use freestyle-exec with shell commands to read, write, and modify files
-5. Make focused, incremental changes to the codebase
-6. Explain what you're doing as you work
-7. Once satisfied with the changes, COMMIT them using the freestyle-commit-and-push tool
-8. Confirm the commit was successful
+4. Use the dedicated file operation tools (freestyle-ls, freestyle-read-file, freestyle-write-file) for file management
+5. Use freestyle-exec only for other shell operations (mv, rm, mkdir, npm commands, etc.)
+6. Make focused, incremental changes to the codebase
+7. Explain what you're doing as you work
+8. Once satisfied with the changes, COMMIT them using the freestyle-commit-and-push tool
+9. Confirm the commit was successful
 
 Remember: NO CHANGE IS COMPLETE WITHOUT A COMMIT. Always end your work with a git commit.`;
   },
