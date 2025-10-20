@@ -4,7 +4,7 @@ import { z } from "zod";
 import { neonMcpClient } from "../mcp/neon";
 import { context7McpClient } from "../mcp/context7";
 import type { CodegenRuntimeContext } from "./context";
-import { eq } from "drizzle-orm";
+import { eq, asc } from "drizzle-orm";
 
 import { freestyleService } from "@/lib/freestyle";
 import { neonService } from "@/lib/neon";
@@ -50,7 +50,9 @@ export async function createFreestyleTools(
 
     if (versionSecrets) {
       secrets = versionSecrets.secrets;
-      console.log(`[createFreestyleTools] Loaded secrets from version`);
+      console.log(
+        `[createFreestyleTools] Loaded ${Object.keys(secrets).length} secrets from version`,
+      );
     } else {
       console.log(
         `[createFreestyleTools] No secrets found for version, generating fresh DATABASE_URL`,
@@ -63,13 +65,44 @@ export async function createFreestyleTools(
     }
   } else {
     console.log(
-      `[createFreestyleTools] No current version set, generating fresh DATABASE_URL`,
+      `[createFreestyleTools] No current version set, trying to fetch initial version secrets`,
     );
-    // No current version, generate DATABASE_URL
-    const databaseUrl = await neonService.getConnectionUri({
-      projectId: neonProjectId,
-    });
-    secrets = { DATABASE_URL: databaseUrl };
+    // No current version set - try to fetch the initial version's secrets
+    const [initialVersion] = await db
+      .select()
+      .from(projectVersionsTable)
+      .where(eq(projectVersionsTable.projectId, projectId))
+      .orderBy(asc(projectVersionsTable.createdAt))
+      .limit(1);
+
+    if (initialVersion) {
+      console.log(
+        `[createFreestyleTools] Found initial version: ${initialVersion.id}`,
+      );
+      const [versionSecrets] = await db
+        .select()
+        .from(projectSecretsTable)
+        .where(eq(projectSecretsTable.projectVersionId, initialVersion.id))
+        .limit(1);
+
+      if (versionSecrets) {
+        secrets = versionSecrets.secrets;
+        console.log(
+          `[createFreestyleTools] Loaded ${Object.keys(secrets).length} secrets from initial version`,
+        );
+      }
+    }
+
+    // Final fallback if still no secrets
+    if (Object.keys(secrets).length === 0) {
+      console.log(
+        `[createFreestyleTools] No secrets found, generating fresh DATABASE_URL`,
+      );
+      const databaseUrl = await neonService.getConnectionUri({
+        projectId: neonProjectId,
+      });
+      secrets = { DATABASE_URL: databaseUrl };
+    }
   }
 
   // Initialize environment variables in runtime context
@@ -383,13 +416,42 @@ export async function createFreestyleTools(
           versionId: version.id,
         };
       } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : String(error);
+        // Extract detailed error information
+        let errorMessage = "Unknown error";
+        let errorDetails: any = {};
+
+        if (error instanceof Error) {
+          errorMessage = error.message;
+          errorDetails = {
+            name: error.name,
+            message: error.message,
+            stack: error.stack,
+            // Include any additional properties
+            ...(error as any),
+          };
+        } else if (typeof error === "object" && error !== null) {
+          // Try to extract useful information from error object
+          errorDetails = error;
+          errorMessage =
+            (error as any).message ||
+            (error as any).error ||
+            (error as any).statusText ||
+            JSON.stringify(error);
+        } else {
+          errorMessage = String(error);
+          errorDetails = { raw: error };
+        }
+
         console.error(
           `[freestyle-commit-and-push] Error committing and pushing:`,
-          JSON.stringify(error, Object.getOwnPropertyNames(error), 2),
+          JSON.stringify(
+            errorDetails,
+            Object.getOwnPropertyNames(errorDetails),
+            2,
+          ),
         );
         console.error(`[freestyle-commit-and-push] Error object:`, error);
+
         return {
           success: false,
           message: `Failed to commit and push: ${errorMessage}`,

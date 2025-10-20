@@ -166,11 +166,11 @@ Remember: NO CHANGE IS COMPLETE WITHOUT A COMMIT. Always end your work with a gi
 
   model: [
     {
-      model: anthropic("claude-haiku-4-5"),
+      model: openai("gpt-4o-mini"),
       maxRetries: 1,
     },
     {
-      model: openai("gpt-4o-mini"),
+      model: anthropic("claude-haiku-4-5"),
       maxRetries: 1,
     },
   ],

@@ -53,8 +53,22 @@ export async function POST(req: Request, { params }: RouteParams) {
     const projectSlug = sanitizeDomain(project.name);
     const userSlug = sanitizeDomain(user.displayName || user.id);
     const customDomain = `${projectSlug}-${userSlug}.style.dev`;
+    const deploymentUrl = `https://${customDomain}`;
 
     console.log("[Deploy API] Deploying to domain:", customDomain);
+
+    // Whitelist the deployment URL in Neon Auth
+    console.log(
+      "[Deploy API] Whitelisting domain in Neon Auth:",
+      deploymentUrl,
+    );
+    try {
+      await neonService.addAuthDomain(project.neonProjectId, deploymentUrl);
+      console.log("[Deploy API] Domain whitelisted successfully");
+    } catch (error) {
+      console.error("[Deploy API] Failed to whitelist domain:", error);
+      // Continue with deployment even if whitelisting fails
+    }
 
     // Get the database connection URI
     const databaseUrl = await neonService.getConnectionUri({
@@ -86,6 +100,7 @@ export async function POST(req: Request, { params }: RouteParams) {
     return NextResponse.json({
       message: "Deployment triggered",
       domain: customDomain,
+      url: deploymentUrl,
     });
   } catch (error) {
     console.error("[Deploy API] Error:", error);

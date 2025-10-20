@@ -39,6 +39,25 @@ type CreateProjectResponse = {
   operations?: Array<{ id?: string }>;
 };
 
+type InitNeonAuthResponse = {
+  auth_provider: string;
+  auth_provider_project_id: string;
+  pub_client_key: string;
+  secret_server_key: string;
+  jwks_url: string;
+  schema_name: string;
+  table_name: string;
+};
+
+type AuthDomain = {
+  domain: string;
+  auth_provider: string;
+};
+
+type ListAuthDomainsResponse = {
+  domains: AuthDomain[];
+};
+
 type ConnectionUriResponse = {
   uri?: string;
 };
@@ -208,6 +227,117 @@ export class NeonService {
     }
 
     return { neonProjectId, databaseUrl };
+  }
+
+  async initNeonAuth(
+    neonProjectId: string,
+    branchId: string,
+    databaseName = "neondb",
+    roleName = "neondb_owner",
+  ): Promise<InitNeonAuthResponse> {
+    console.log("[Neon] Initializing Neon Auth for project:", neonProjectId);
+
+    const res = await fetch(`${this.baseUrl}/projects/auth/create`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        Authorization: `Bearer ${this.apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        auth_provider: "stack",
+        project_id: neonProjectId,
+        branch_id: branchId,
+        database_name: databaseName,
+        role_name: roleName,
+      }),
+      cache: "no-store",
+    });
+
+    console.log("[Neon] Response status:", res.status);
+
+    if (!res.ok) {
+      const text = await res.text();
+      console.error("[Neon] Error response:", text);
+      throw new Error(`Failed to initialize Neon Auth: ${res.status} ${text}`);
+    }
+
+    const json = (await res.json()) as InitNeonAuthResponse;
+    console.log("[Neon] Neon Auth initialized:", {
+      authProvider: json.auth_provider,
+      projectId: json.auth_provider_project_id,
+    });
+
+    return json;
+  }
+
+  async listAuthDomains(neonProjectId: string): Promise<AuthDomain[]> {
+    console.log("[Neon] Listing auth domains for project:", neonProjectId);
+
+    const res = await fetch(
+      `${this.baseUrl}/projects/${neonProjectId}/auth/domains`,
+      {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+          Authorization: `Bearer ${this.apiKey}`,
+        },
+        cache: "no-store",
+      },
+    );
+
+    console.log("[Neon] Response status:", res.status);
+
+    if (!res.ok) {
+      const text = await res.text();
+      console.error("[Neon] Error response:", text);
+      throw new Error(`Failed to list auth domains: ${res.status} ${text}`);
+    }
+
+    const json = (await res.json()) as ListAuthDomainsResponse;
+    console.log("[Neon] Auth domains:", json.domains);
+
+    return json.domains;
+  }
+
+  async addAuthDomain(
+    neonProjectId: string,
+    domain: string,
+    authProvider = "stack",
+  ): Promise<void> {
+    console.log(
+      "[Neon] Adding auth domain for project:",
+      neonProjectId,
+      "domain:",
+      domain,
+    );
+
+    const res = await fetch(
+      `${this.baseUrl}/projects/${neonProjectId}/auth/domains`,
+      {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          Authorization: `Bearer ${this.apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          domain,
+          auth_provider: authProvider,
+        }),
+        cache: "no-store",
+      },
+    );
+
+    console.log("[Neon] Response status:", res.status);
+
+    if (!res.ok) {
+      const text = await res.text();
+      console.error("[Neon] Error response:", text);
+      throw new Error(`Failed to add auth domain: ${res.status} ${text}`);
+    }
+
+    console.log("[Neon] Auth domain added successfully");
   }
 
   async deleteProject(neonProjectId: string): Promise<void> {

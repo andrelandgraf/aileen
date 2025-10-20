@@ -50,6 +50,13 @@
       "when": 1760995207774,
       "tag": "0006_previous_stark_industries",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1760998084017,
+      "tag": "0007_nostalgic_thunderbolt",
+      "breakpoints": true
     }
   ]
 }

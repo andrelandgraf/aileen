@@ -26,7 +26,7 @@ export const projectVersionsTable = pgTable("project_versions", {
     .references(() => projectsTable.id),
   gitCommitHash: text("git_commit_hash").notNull(),
   neonSnapshotId: text("neon_snapshot_id").notNull(),
-  assistantMessageId: text("assistant_message_id").notNull(),
+  assistantMessageId: text("assistant_message_id"),
   summary: text("summary").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
