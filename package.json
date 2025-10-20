@@ -23,7 +23,7 @@
     "@assistant-ui/react-markdown": "^0.11.1",
     "@hookform/resolvers": "^5.2.2",
     "@mastra/ai-sdk": "^0.2.1",
-    "@mastra/core": "^0.20.2",
+    "@mastra/core": "^0.21.0",
     "@mastra/mcp": "^0.13.5",
     "@neondatabase/serverless": "^1.0.2",
     "@radix-ui/react-accordion": "^1.2.12",
