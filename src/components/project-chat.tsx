@@ -8,11 +8,14 @@ import {
 import { Thread } from "@/components/assistant-ui/thread";
 import { AssistantCloud } from "@assistant-ui/react";
 import { ProfileButton } from "@/components/profile-button";
+import { VersionsDropdown } from "@/components/versions-dropdown";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, Rocket, Code2 } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ExternalLink, Rocket, Code2, ArrowLeft } from "lucide-react";
 import { useEffect, useState } from "react";
 import { FreestyleDevServer } from "freestyle-sandboxes/react/dev-server";
 import { requestDevServer } from "@/actions/preview-actions";
+import Link from "next/link";
 
 interface ProjectChatProps {
   projectId: string;
@@ -77,23 +80,31 @@ export const ProjectChat = ({
     }),
   });
 
-  // useEffect(() => {
-  //   async function switchToThread() {
-  //     try {
-  //       await runtime.threads.switchToThread(threadId);
-  //     } catch (error) {
-  //       console.error("[ProjectChat] Error switching to thread:", error);
-  //     }
-  //   }
-  //   switchToThread();
-  // }, [runtime, threadId]);
+  useEffect(() => {
+    let switched = false;
+    return runtime.threads.subscribe(() => {
+      if (runtime.threads.getState().isLoading || switched) return;
+      switched = true;
+      if (runtime.threads.getState().threads.length === 0) return;
+      runtime.threads.switchToThread(threadId);
+    });
+  }, [runtime, threadId]);
+
+  const isThreadReady = runtime.threads.getState().mainThreadId === threadId;
 
   return (
     <AssistantRuntimeProvider runtime={runtime}>
       <div className="flex h-dvh flex-col">
         <header className="flex items-center justify-between px-4 py-2 border-b">
           <div className="flex items-center gap-4">
+            <Link
+              href="/projects"
+              className="flex items-center text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Link>
             <h1 className="text-lg font-semibold">{projectName}</h1>
+            <VersionsDropdown projectId={projectId} accessToken={accessToken} />
           </div>
           <div className="flex items-center gap-2">
             <Button
@@ -122,7 +133,19 @@ export const ProjectChat = ({
         <div className="flex flex-1 overflow-hidden">
           {/* Chat side */}
           <div className="flex-1 overflow-hidden border-r">
-            <Thread />
+            {isThreadReady ? (
+              <Thread />
+            ) : (
+              <div className="flex flex-col h-full p-4 gap-4">
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-20 w-3/4" />
+                <Skeleton className="h-20 w-2/3 self-end" />
+                <Skeleton className="h-20 w-3/4" />
+                <Skeleton className="h-20 w-2/3 self-end" />
+                <div className="flex-1" />
+                <Skeleton className="h-12 w-full" />
+              </div>
+            )}
           </div>
           {/* Preview side */}
           <div className="flex-1 overflow-hidden bg-muted">

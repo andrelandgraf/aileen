@@ -4,8 +4,8 @@ import { db } from "@/lib/db/db";
 import { projectsTable } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { ProjectChat } from "@/components/project-chat";
-import { getNeonConnectionUri } from "@/lib/neon/connection-uri";
 import { freestyleService } from "@/lib/freestyle";
+import { neonService } from "@/lib/neon";
 
 interface ProjectPageProps {
   params: Promise<{
@@ -32,14 +32,14 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
   console.log("[Project Page] This may take 20-30 seconds on cold start...");
 
   // Get the database connection URI
-  const databaseUrl = await getNeonConnectionUri({
+  const databaseUrl = await neonService.getConnectionUri({
     projectId: project.neonProjectId,
   });
 
   // Request dev server using the freestyle service
   const devServerResponse = await freestyleService.requestDevServer({
     repoId: project.repoId,
-    envVars: {
+    secrets: {
       DATABASE_URL: databaseUrl,
     },
   });

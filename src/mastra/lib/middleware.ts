@@ -73,6 +73,24 @@ export async function auth(c: Context, next: Next) {
       "[Mastra Auth] RuntimeContext populated with project and user data",
     );
 
+    // Extract the last message ID from the request body
+    const request = c.req.raw.clone();
+    const body = await request.json();
+    console.log("[Mastra Auth] Body:", body);
+
+    // Get the last message ID (the user's current message)
+    const messages = body.messages as Array<{ id: string; role: string }>;
+    const lastMessage = messages?.[messages.length - 1];
+    const assistantMessageId = lastMessage?.id;
+
+    if (!assistantMessageId) {
+      console.error("[Mastra Auth] No message ID found in request");
+      return c.json({ error: "Missing message ID" }, 400);
+    }
+
+    console.log("[Mastra Auth] Assistant message ID:", assistantMessageId);
+    runtimeContext.set("assistantMessageId", assistantMessageId);
+
     await next();
   } catch (error) {
     console.error("[Mastra Auth] Authentication error:", error);

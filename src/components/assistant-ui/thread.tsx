@@ -118,28 +118,25 @@ const ThreadSuggestions: FC = () => {
     <div className="aui-thread-welcome-suggestions grid w-full gap-2 pb-4 @md:grid-cols-2">
       {[
         {
-          title: "Create a landing page",
-          label: "with hero and CTA",
-          action:
-            "Create a beautiful landing page with a hero section, features, and call-to-action using shadcn and Tailwind",
+          title: "Replace the home page",
+          label: 'with "Hello World!"',
+          action: 'Replace the home page content with "Hello World!"',
         },
         {
-          title: "Update the Neon schema",
-          label: "add new tables",
-          action:
-            "Update the database schema in the Neon project - add a new table for blog posts with title, content, and author",
+          title: "Create a simple todo app",
+          label: "with CRUD operations",
+          action: "Create a simple todo app with CRUD operations",
         },
         {
-          title: "Build a form",
-          label: "with validation",
-          action:
-            "Build a contact form with validation using React Hook Form and shadcn form components",
+          title: "Explain my database project",
+          label: "show schema and tables",
+          action: "Explain my database project - show me the schema and tables",
         },
         {
-          title: "Add a new API route",
-          label: "with database queries",
+          title: "Explain the application setup",
+          label: "architecture and structure",
           action:
-            "Create a new API route for handling user data with Drizzle ORM queries to the Neon database",
+            "Explain the current application setup to me - the architecture and structure",
         },
       ].map((suggestedAction, index) => (
         <m.div

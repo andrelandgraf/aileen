@@ -14,4 +14,6 @@ export type UserContext = {
 export type CodegenRuntimeContext = {
   project: Project;
   user: UserContext;
+  assistantMessageId: string;
+  environmentVariables: Record<string, string>;
 };

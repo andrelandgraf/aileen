@@ -1,11 +1,15 @@
 import { NextResponse } from "next/server";
 import { stackServerApp } from "@/lib/stack/server";
 import { db } from "@/lib/db/db";
-import { projectsTable } from "@/lib/db/schema";
-import { eq, and } from "drizzle-orm";
+import {
+  projectsTable,
+  projectVersionsTable,
+  projectSecretsTable,
+} from "@/lib/db/schema";
+import { eq, and, inArray } from "drizzle-orm";
 import { FreestyleSandboxes } from "freestyle-sandboxes";
-import { deleteNeonProject } from "@/lib/neon/projects";
 import { deleteAssistantThread } from "@/lib/assistant-ui";
+import { neonService } from "@/lib/neon";
 
 interface RouteParams {
   params: Promise<{
@@ -61,7 +65,7 @@ export async function DELETE(req: Request, { params }: RouteParams) {
     // Delete Neon project
     console.log("[DELETE Project] Deleting Neon project...");
     try {
-      await deleteNeonProject(project.neonProjectId);
+      await neonService.deleteProject(project.neonProjectId);
       console.log("[DELETE Project] Neon project deleted successfully");
     } catch (error) {
       console.error("[DELETE Project] Error deleting Neon project:", error);
@@ -81,8 +85,44 @@ export async function DELETE(req: Request, { params }: RouteParams) {
       // Continue with deletion even if Assistant UI fails
     }
 
-    // Delete from database
-    console.log("[DELETE Project] Deleting from database...");
+    // First, get all version IDs for this project
+    console.log("[DELETE Project] Fetching project versions...");
+    const versions = await db
+      .select({ id: projectVersionsTable.id })
+      .from(projectVersionsTable)
+      .where(eq(projectVersionsTable.projectId, projectId));
+
+    const versionIds = versions.map((v) => v.id);
+    console.log(
+      `[DELETE Project] Found ${versionIds.length} versions to delete`,
+    );
+
+    // Clear the currentDevVersionId reference first to avoid FK constraint violation
+    console.log("[DELETE Project] Clearing currentDevVersionId reference...");
+    await db
+      .update(projectsTable)
+      .set({ currentDevVersionId: null })
+      .where(eq(projectsTable.id, projectId));
+    console.log("[DELETE Project] currentDevVersionId cleared successfully");
+
+    // Delete all secrets for these versions
+    if (versionIds.length > 0) {
+      console.log("[DELETE Project] Deleting project secrets from database...");
+      await db
+        .delete(projectSecretsTable)
+        .where(inArray(projectSecretsTable.projectVersionId, versionIds));
+      console.log("[DELETE Project] Project secrets deleted successfully");
+    }
+
+    // Delete all project versions from database
+    console.log("[DELETE Project] Deleting project versions from database...");
+    await db
+      .delete(projectVersionsTable)
+      .where(eq(projectVersionsTable.projectId, projectId));
+    console.log("[DELETE Project] Project versions deleted successfully");
+
+    // Delete project from database
+    console.log("[DELETE Project] Deleting project from database...");
     await db.delete(projectsTable).where(eq(projectsTable.id, projectId));
 
     console.log("[DELETE Project] Project deleted successfully");

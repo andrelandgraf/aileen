@@ -70,6 +70,16 @@ export const codegenAgent = new Agent({
 - Freestyle Git Repository ID: ${project.repoId}
 - User: ${user.displayName || user.userId}
 
+**Development Environment:**
+The Freestyle tools give you access to a live development server where \`npm run dev\` is ALWAYS running in the background with hot module reloading enabled. This means:
+- Any changes you make to files are immediately reflected in the running application
+- The user has real-time access to a preview of the application showing your latest changes
+- You don't need to manually start or restart the dev server - it's always running
+- When you write or modify files, the changes are instantly visible in the user's preview
+- The dev server automatically picks up new files, code changes, and configuration updates
+
+The user is viewing your work in real-time through this preview environment, so make changes confidently knowing they will see the results immediately.
+
 **Your Mission:**
 You are building a Next.js application in the workspace root. Edit the app incrementally according to the user's requirements.
 
@@ -103,17 +113,19 @@ You have dedicated tools for common file operations. ALWAYS prefer these tools o
      - Delete files: \`rm /template/src/file.tsx\` or \`rm -rf /template/src/folder\`
      - Search files: \`find /template -name "*.tsx"\` or \`grep -r "pattern" /template/src\`
      - Create directories: \`mkdir -p /template/src/components/new-folder\`
-     - Run npm commands: \`cd /template && npm install\`, \`cd /template && npm run dev\`, etc.
+     - Run npm commands: \`cd /template && npm install\` (NOTE: Never run \`npm run dev\` - it's already running!)
 
 **Running Commands with freestyle-exec:**
 - For quick commands (mv, rm, mkdir, grep, etc.), run normally with \`background: false\`
-- For long-running commands (npm install, npm run dev, build processes), ALWAYS run in background with \`background: true\`
+- For long-running commands (npm install, build processes), ALWAYS run in background with \`background: true\`
   Examples of background commands:
   - \`npm install\` (or \`npm i\`)
-  - \`npm run dev\`
   - \`npm run build\`
-  - Any dev server or watch process
-  - Any command that runs indefinitely
+  - Any command that runs for an extended time
+  
+  IMPORTANT: Database commands (\`npm run db:generate\`, \`npm run db:migrate\`) should ALWAYS run in FOREGROUND (\`background: false\`) so you can inspect the output and verify the migration was successful.
+  
+  NOTE: You never need to run \`npm run dev\` - the dev server is already running and will automatically reflect your file changes!
 
 **Database Management:**
 You have access to both Neon MCP server and Drizzle ORM:
@@ -128,9 +140,9 @@ Drizzle ORM (for schema management):
 - Define and modify database schemas in Drizzle schema files (in /template)
 - Use Drizzle in your application code for type-safe queries
 - Run schema changes via package.json scripts using freestyle-exec (always cd to /template first):
-  - Generate migrations: \`cd /template && npm run db:generate\` (background: true)
-  - Run migrations: \`cd /template && npm run db:migrate\` (background: true)
-  - Push schema changes: \`cd /template && npm run db:push\` (background: true)
+  - Generate migrations: \`cd /template && npm run db:generate\` (background: false - run in foreground to inspect output)
+  - Run migrations: \`cd /template && npm run db:migrate\` (background: false - run in foreground to inspect output)
+  - Push schema changes: \`cd /template && npm run db:push\` (background: false - run in foreground to inspect output)
 - Never hardcode database credentials - use environment variables
 
 **IMPORTANT - Committing Changes:**
@@ -155,11 +167,11 @@ Remember: NO CHANGE IS COMPLETE WITHOUT A COMMIT. Always end your work with a gi
   model: [
     {
       model: anthropic("claude-haiku-4-5"),
-      maxRetries: 2,
+      maxRetries: 1,
     },
     {
       model: openai("gpt-4o-mini"),
-      maxRetries: 2,
+      maxRetries: 1,
     },
   ],
   defaultStreamOptions: {

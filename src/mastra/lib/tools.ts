@@ -4,25 +4,84 @@ import { z } from "zod";
 import { neonMcpClient } from "../mcp/neon";
 import { context7McpClient } from "../mcp/context7";
 import type { CodegenRuntimeContext } from "./context";
+import { eq } from "drizzle-orm";
 
-import { getNeonConnectionUri } from "@/lib/neon/connection-uri";
 import { freestyleService } from "@/lib/freestyle";
+import { neonService } from "@/lib/neon";
+import { db } from "@/lib/db/db";
+import {
+  projectVersionsTable,
+  projectsTable,
+  projectSecretsTable,
+} from "@/lib/db/schema";
 
 export async function createFreestyleTools(
   repoId: string,
   neonProjectId: string,
+  projectId: string,
+  assistantMessageId: string,
+  runtimeContext: RuntimeContext<CodegenRuntimeContext>,
 ) {
-  // Get the database connection URI
-  const databaseUrl = await getNeonConnectionUri({
-    projectId: neonProjectId,
-  });
+  // Fetch the project to get current dev version
+  const [project] = await db
+    .select()
+    .from(projectsTable)
+    .where(eq(projectsTable.id, projectId))
+    .limit(1);
+
+  if (!project) {
+    throw new Error(`Project ${projectId} not found`);
+  }
+
+  let secrets: Record<string, string> = {};
+
+  // If there's a current dev version, fetch its secrets
+  if (project.currentDevVersionId) {
+    console.log(
+      `[createFreestyleTools] Fetching secrets for version: ${project.currentDevVersionId}`,
+    );
+    const [versionSecrets] = await db
+      .select()
+      .from(projectSecretsTable)
+      .where(
+        eq(projectSecretsTable.projectVersionId, project.currentDevVersionId),
+      )
+      .limit(1);
+
+    if (versionSecrets) {
+      secrets = versionSecrets.secrets;
+      console.log(`[createFreestyleTools] Loaded secrets from version`);
+    } else {
+      console.log(
+        `[createFreestyleTools] No secrets found for version, generating fresh DATABASE_URL`,
+      );
+      // Fallback: generate DATABASE_URL if no secrets found
+      const databaseUrl = await neonService.getConnectionUri({
+        projectId: neonProjectId,
+      });
+      secrets = { DATABASE_URL: databaseUrl };
+    }
+  } else {
+    console.log(
+      `[createFreestyleTools] No current version set, generating fresh DATABASE_URL`,
+    );
+    // No current version, generate DATABASE_URL
+    const databaseUrl = await neonService.getConnectionUri({
+      projectId: neonProjectId,
+    });
+    secrets = { DATABASE_URL: databaseUrl };
+  }
+
+  // Initialize environment variables in runtime context
+  console.log(
+    `[createFreestyleTools] Initializing environment variables in context`,
+  );
+  runtimeContext.set("environmentVariables", secrets);
 
   // Request dev server using the freestyle service
   const devServerResponse = await freestyleService.requestDevServer({
     repoId,
-    envVars: {
-      DATABASE_URL: databaseUrl,
-    },
+    secrets,
   });
 
   const { commitAndPush, process, fs } = devServerResponse;
@@ -171,6 +230,32 @@ export async function createFreestyleTools(
     }),
     execute: async ({ context }) => {
       try {
+        // Validate db:push is not used
+        if (context.command.includes("db:push")) {
+          console.error(
+            `[freestyle-exec] Attempted to use db:push which is not supported`,
+          );
+          return {
+            error:
+              "The db:push command is not available. Please use 'npm run db:generate' to generate migrations and 'npm run db:migrate' to apply them instead.",
+          };
+        }
+
+        // Validate db:generate and db:migrate are not run in background
+        if (
+          (context.command.includes("db:generate") ||
+            context.command.includes("db:migrate")) &&
+          context.background === true
+        ) {
+          console.error(
+            `[freestyle-exec] Attempted to run database command in background`,
+          );
+          return {
+            error:
+              "Database commands (db:generate, db:migrate) must be run in the foreground (background: false) so you can inspect the output and verify success. Please run this command again with background: false.",
+          };
+        }
+
         console.log(
           `[freestyle-exec] Executing command: ${context.command}${context.background ? " (background)" : ""}`,
         );
@@ -203,7 +288,7 @@ export async function createFreestyleTools(
   const commitAndPushTool = createTool({
     id: "freestyle-commit-and-push",
     description:
-      "Commit all changes and push them to the git repository. This should be called after making changes to save your work.",
+      "Commit all changes and push them to the git repository. This should be called after making changes to save your work. This will also create a Neon snapshot of the database and store a version record.",
     inputSchema: z.object({
       message: z
         .string()
@@ -214,19 +299,88 @@ export async function createFreestyleTools(
     outputSchema: z.object({
       success: z.boolean(),
       message: z.string(),
+      commitHash: z.string().optional(),
+      snapshotId: z.string().optional(),
+      versionId: z.string().optional(),
     }),
     execute: async ({ context }) => {
       try {
         console.log(
           `[freestyle-commit-and-push] Committing with message: "${context.message}"`,
         );
+
+        // Commit and push changes
         await commitAndPush(context.message);
         console.log(
           `[freestyle-commit-and-push] Successfully committed and pushed`,
         );
+
+        // Get the commit hash
+        console.log(`[freestyle-commit-and-push] Getting commit hash...`);
+        const commitHashResult = await process.exec("git rev-parse HEAD");
+        const commitHash = commitHashResult.stdout?.join("\n").trim() || "";
+        console.log(`[freestyle-commit-and-push] Commit hash: ${commitHash}`);
+
+        // Create a Neon snapshot
+        console.log(
+          `[freestyle-commit-and-push] Creating Neon snapshot for project: ${neonProjectId}`,
+        );
+        const snapshotId = await neonService.createSnapshot(neonProjectId, {
+          name: `snapshot-${commitHash.substring(0, 7)}`,
+        });
+        console.log(
+          `[freestyle-commit-and-push] Created snapshot: ${snapshotId}`,
+        );
+
+        // Store the project version in the database
+        console.log(
+          `[freestyle-commit-and-push] Storing project version in database...`,
+        );
+        const [version] = await db
+          .insert(projectVersionsTable)
+          .values({
+            projectId,
+            gitCommitHash: commitHash,
+            neonSnapshotId: snapshotId,
+            assistantMessageId,
+            summary: context.message,
+          })
+          .returning();
+        console.log(
+          `[freestyle-commit-and-push] Created version record: ${version.id}`,
+        );
+
+        // Get final environment variables from context and store as secrets for the new version
+        const finalEnvVars = runtimeContext.get("environmentVariables") || {};
+        console.log(
+          `[freestyle-commit-and-push] Storing ${Object.keys(finalEnvVars).length} environment variables for version ${version.id}...`,
+        );
+        await db.insert(projectSecretsTable).values({
+          projectVersionId: version.id,
+          secrets: finalEnvVars,
+        });
+        console.log(
+          `[freestyle-commit-and-push] Stored secrets for version ${version.id}`,
+        );
+
+        // Update the project's current dev version
+        console.log(
+          `[freestyle-commit-and-push] Updating project's current dev version...`,
+        );
+        await db
+          .update(projectsTable)
+          .set({ currentDevVersionId: version.id })
+          .where(eq(projectsTable.id, projectId));
+        console.log(
+          `[freestyle-commit-and-push] Updated current dev version to ${version.id}`,
+        );
+
         return {
           success: true,
-          message: `Successfully committed and pushed with message: "${context.message}"`,
+          message: `Successfully committed and pushed with message: "${context.message}". Created snapshot ${snapshotId} and version ${version.id}.`,
+          commitHash,
+          snapshotId,
+          versionId: version.id,
         };
       } catch (error) {
         const errorMessage =
@@ -244,12 +398,102 @@ export async function createFreestyleTools(
     },
   });
 
+  // List environment variables tool
+  const listEnvTool = createTool({
+    id: "list-environment-variables",
+    description:
+      "List all environment variable keys available in the project. Use this to see what environment variables are currently set.",
+    inputSchema: z.object({}),
+    outputSchema: z.object({
+      keys: z.array(z.string()),
+    }),
+    execute: async () => {
+      const envVars = runtimeContext.get("environmentVariables");
+      const keys = Object.keys(envVars || {});
+      console.log(`[list-environment-variables] Found ${keys.length} keys`);
+      return { keys };
+    },
+  });
+
+  // Get environment variable tool
+  const getEnvTool = createTool({
+    id: "get-environment-variable",
+    description:
+      "Get the value of a specific environment variable by its key. Returns the current value or an error if the key doesn't exist.",
+    inputSchema: z.object({
+      key: z
+        .string()
+        .describe(
+          "The environment variable key to retrieve (e.g., 'DATABASE_URL')",
+        ),
+    }),
+    outputSchema: z.object({
+      value: z.string().optional(),
+      error: z.string().optional(),
+    }),
+    execute: async ({ context }) => {
+      const envVars = runtimeContext.get("environmentVariables");
+      const value = envVars?.[context.key];
+
+      if (value === undefined) {
+        console.log(
+          `[get-environment-variable] Key "${context.key}" not found`,
+        );
+        return {
+          error: `Environment variable "${context.key}" not found`,
+        };
+      }
+
+      console.log(
+        `[get-environment-variable] Retrieved value for key "${context.key}"`,
+      );
+      return { value };
+    },
+  });
+
+  // Set environment variable tool
+  const setEnvTool = createTool({
+    id: "set-environment-variable",
+    description:
+      "Set or update an environment variable. This will create a new variable if it doesn't exist or update the value if it does. Changes are kept in memory until you commit and push.",
+    inputSchema: z.object({
+      key: z
+        .string()
+        .describe("The environment variable key to set (e.g., 'API_KEY')"),
+      value: z
+        .string()
+        .describe("The value to set for the environment variable"),
+    }),
+    outputSchema: z.object({
+      success: z.boolean(),
+      message: z.string(),
+    }),
+    execute: async ({ context }) => {
+      const envVars = runtimeContext.get("environmentVariables") || {};
+      const isNew = !(context.key in envVars);
+
+      envVars[context.key] = context.value;
+      runtimeContext.set("environmentVariables", envVars);
+
+      console.log(
+        `[set-environment-variable] ${isNew ? "Created" : "Updated"} key "${context.key}"`,
+      );
+      return {
+        success: true,
+        message: `Successfully ${isNew ? "created" : "updated"} environment variable "${context.key}"`,
+      };
+    },
+  });
+
   return {
     "freestyle-ls": lsTool,
     "freestyle-read-file": readFileTool,
     "freestyle-write-file": writeFileTool,
     "freestyle-exec": execTool,
     "freestyle-commit-and-push": commitAndPushTool,
+    "list-environment-variables": listEnvTool,
+    "get-environment-variable": getEnvTool,
+    "set-environment-variable": setEnvTool,
   };
 }
 
@@ -261,14 +505,25 @@ export async function getCodegenTools(
   runtimeContext: RuntimeContext<CodegenRuntimeContext>,
 ) {
   const project = runtimeContext.get("project");
+  const assistantMessageId = runtimeContext.get("assistantMessageId");
 
   if (!project) {
     throw new Error("Project context required to load tools");
   }
 
+  if (!assistantMessageId) {
+    throw new Error("Assistant message ID required to load tools");
+  }
+
   // Fetch tools in parallel
   const [freestyleTools, neonTools, context7Tools] = await Promise.all([
-    createFreestyleTools(project.repoId, project.neonProjectId),
+    createFreestyleTools(
+      project.repoId,
+      project.neonProjectId,
+      project.id,
+      assistantMessageId,
+      runtimeContext,
+    ),
     neonMcpClient.getTools(),
     context7McpClient.getTools(),
   ]);

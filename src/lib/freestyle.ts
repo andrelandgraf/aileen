@@ -12,7 +12,7 @@ interface CreateRepoResponse {
 
 interface RequestDevServerParams {
   repoId: string;
-  envVars?: Record<string, string>;
+  secrets: Record<string, string>;
 }
 
 export class FreestyleService {
@@ -65,14 +65,14 @@ export class FreestyleService {
 
   async requestDevServer({
     repoId,
-    envVars,
+    secrets,
   }: RequestDevServerParams): Promise<FreestyleDevServer> {
     console.log("[Freestyle] Requesting dev server for repo:", repoId);
 
     try {
       const devServerResponse = await this.freestyle.requestDevServer({
         repoId,
-        envVars,
+        envVars: secrets,
       });
 
       console.log("[Freestyle] Dev server response:", {
@@ -81,6 +81,23 @@ export class FreestyleService {
         codeServerUrl: devServerResponse.codeServerUrl,
         isNew: devServerResponse.isNew,
       });
+
+      // Update .env file with the latest environment variables
+      console.log(
+        "[Freestyle] Updating .env file with environment variables...",
+      );
+      const envContent = Object.entries(secrets)
+        .map(([key, value]) => `${key}=${value}`)
+        .join("\n");
+
+      await devServerResponse.fs.writeFile(
+        "/template/.env",
+        envContent,
+        "utf-8",
+      );
+      console.log(
+        `[Freestyle] Successfully wrote ${Object.keys(secrets).length} environment variables to .env`,
+      );
 
       return devServerResponse;
     } catch (error) {
@@ -95,3 +112,77 @@ export class FreestyleService {
 export const freestyleService = new FreestyleService(
   process.env.FREESTYLE_API_KEY!,
 );
+
+/**
+ * Gets the latest commit hash from a Freestyle repository
+ * @param process - The process object from FreestyleDevServer
+ */
+export async function getLatestCommit(
+  process: FreestyleDevServer["process"],
+): Promise<string> {
+  console.log("[Freestyle] Getting latest commit hash");
+
+  try {
+    const result = await process.exec("git rev-parse HEAD");
+
+    if (result.stderr && result.stderr.length > 0) {
+      console.warn(
+        `[Freestyle] git rev-parse stderr: ${result.stderr.join("\n")}`,
+      );
+    }
+
+    const commitHash = result.stdout?.join("\n").trim() || "";
+    console.log("[Freestyle] Latest commit hash:", commitHash);
+
+    return commitHash;
+  } catch (error) {
+    console.error("[Freestyle] Error getting latest commit:", error);
+    throw new Error(
+      `Failed to get latest commit: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+}
+
+/**
+ * Sets the main branch to a specific commit
+ * @param process - The process object from FreestyleDevServer
+ * @param commitHash - The commit hash to reset to
+ */
+export async function setMainBranchToCommit(
+  process: FreestyleDevServer["process"],
+  commitHash: string,
+): Promise<void> {
+  console.log("[Freestyle] Setting main branch to commit:", commitHash);
+
+  try {
+    // Reset main branch to the specified commit
+    console.log("[Freestyle] Resetting main branch to commit:", commitHash);
+    const resetResult = await process.exec(`git reset --hard ${commitHash}`);
+
+    if (resetResult.stderr && resetResult.stderr.length > 0) {
+      console.warn(
+        `[Freestyle] git reset stderr: ${resetResult.stderr.join("\n")}`,
+      );
+    }
+
+    // Force push the changes
+    console.log("[Freestyle] Force pushing changes...");
+    const pushResult = await process.exec("git push --force origin main");
+
+    if (pushResult.stderr && pushResult.stderr.length > 0) {
+      console.warn(
+        `[Freestyle] git push stderr: ${pushResult.stderr.join("\n")}`,
+      );
+    }
+
+    console.log(
+      "[Freestyle] Successfully set main branch to commit:",
+      commitHash,
+    );
+  } catch (error) {
+    console.error("[Freestyle] Error setting main branch to commit:", error);
+    throw new Error(
+      `Failed to set main branch to commit: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+}

@@ -1,22 +1,22 @@
 // import { MCPClient } from "@mastra/mcp"; -> currently not working
 import { experimental_createMCPClient } from "ai";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import { getNeonConnectionUri } from "@/lib/neon/connection-uri";
 import { freestyleService } from "@/lib/freestyle";
+import { neonService } from "@/lib/neon";
 
 export async function createFreestyleMcpClient(
   repoId: string,
   neonProjectId: string,
 ) {
   // Get the database connection URI
-  const databaseUrl = await getNeonConnectionUri({
+  const databaseUrl = await neonService.getConnectionUri({
     projectId: neonProjectId,
   });
 
   // Request dev server using the freestyle service
   const devServerResponse = await freestyleService.requestDevServer({
     repoId,
-    envVars: {
+    secrets: {
       DATABASE_URL: databaseUrl,
     },
   });

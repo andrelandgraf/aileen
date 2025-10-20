@@ -3,8 +3,9 @@ import { stackServerApp } from "@/lib/stack/server";
 import { db } from "@/lib/db/db";
 import { projectsTable } from "@/lib/db/schema";
 import { freestyleService } from "@/lib/freestyle";
-import { createNeonProject } from "@/lib/neon/projects";
 import { createAssistantThread } from "@/lib/assistant-ui";
+import { neonService } from "@/lib/neon";
+import { revalidatePath } from "next/cache";
 
 export async function POST(request: Request) {
   try {
@@ -34,7 +35,8 @@ export async function POST(request: Request) {
 
     // Create Neon project
     console.log("[API] Calling Neon API to create project...");
-    const { neonProjectId, databaseUrl } = await createNeonProject(name);
+    const { neonProjectId, databaseUrl } =
+      await neonService.createProject(name);
     console.log("[API] Neon project created with ID:", neonProjectId);
     console.log("[API] Database URL:", databaseUrl);
 
@@ -65,6 +67,8 @@ export async function POST(request: Request) {
       .returning();
 
     console.log("[API] Project created successfully:", project);
+
+    revalidatePath("/projects");
 
     return NextResponse.json(project, { status: 201 });
   } catch (error) {

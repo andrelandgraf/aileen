@@ -43,7 +43,6 @@ export function CreateProjectButton() {
       setOpen(false);
       setName("");
       router.push(`/projects/${project.id}`);
-      router.refresh();
     } catch (error) {
       console.error("Error creating project:", error);
       // TODO: Add proper error handling/toast

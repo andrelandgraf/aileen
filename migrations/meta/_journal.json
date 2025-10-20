@@ -22,6 +22,34 @@
       "when": 1760158656198,
       "tag": "0002_nasty_boomerang",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1760985433411,
+      "tag": "0003_old_nighthawk",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1760991266370,
+      "tag": "0004_spooky_shaman",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1760993898450,
+      "tag": "0005_early_wendigo",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1760995207774,
+      "tag": "0006_previous_stark_industries",
+      "breakpoints": true
     }
   ]
 }

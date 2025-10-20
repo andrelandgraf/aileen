@@ -4,8 +4,8 @@ import { stackServerApp } from "@/lib/stack/server";
 import { db } from "@/lib/db/db";
 import { projectsTable } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
-import { getNeonConnectionUri } from "@/lib/neon/connection-uri";
 import { freestyleService } from "@/lib/freestyle";
+import { neonService } from "@/lib/neon";
 
 export async function requestDevServer({
   repoId,
@@ -33,14 +33,14 @@ export async function requestDevServer({
   }
 
   // Get the database connection URI
-  const databaseUrl = await getNeonConnectionUri({
+  const databaseUrl = await neonService.getConnectionUri({
     projectId: project.neonProjectId,
   });
 
   // Request dev server using the freestyle service
   const devServerResponse = await freestyleService.requestDevServer({
     repoId,
-    envVars: {
+    secrets: {
       DATABASE_URL: databaseUrl,
     },
   });
