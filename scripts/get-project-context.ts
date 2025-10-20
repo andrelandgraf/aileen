@@ -1,6 +1,11 @@
 #!/usr/bin/env bun
 import { db } from "../src/lib/db/db";
-import { projectsTable, usersTable } from "../src/lib/db/schema";
+import {
+  projectsTable,
+  usersTable,
+  projectVersionsTable,
+  projectSecretsTable,
+} from "../src/lib/db/schema";
 import { eq } from "drizzle-orm";
 
 /**
@@ -44,10 +49,53 @@ async function getProjectContext(projectId: string) {
       displayName: user?.name || null,
     };
 
-    // Create runtime context with full project object and user context
+    // Fetch current dev version if it exists
+    let assistantMessageId = "test-message-id";
+    let environmentVariables: Record<string, string> = {};
+
+    if (project.currentDevVersionId) {
+      console.log(
+        `📦 Fetching current dev version: ${project.currentDevVersionId}`,
+      );
+
+      const [version] = await db
+        .select()
+        .from(projectVersionsTable)
+        .where(eq(projectVersionsTable.id, project.currentDevVersionId))
+        .limit(1);
+
+      if (version) {
+        console.log(`✅ Found version: ${version.id}\n`);
+
+        // Use the assistantMessageId from the version if available
+        if (version.assistantMessageId) {
+          assistantMessageId = version.assistantMessageId;
+        }
+
+        // Fetch secrets for this version
+        const [secrets] = await db
+          .select()
+          .from(projectSecretsTable)
+          .where(eq(projectSecretsTable.projectVersionId, version.id))
+          .limit(1);
+
+        if (secrets && secrets.secrets) {
+          environmentVariables = secrets.secrets;
+          console.log(
+            `🔐 Found ${Object.keys(environmentVariables).length} environment variables`,
+          );
+        }
+      }
+    } else {
+      console.log("⚠️  No current dev version found, using defaults\n");
+    }
+
+    // Create runtime context matching CodegenRuntimeContext type
     const runtimeContext = {
       project,
       user: userContext,
+      assistantMessageId,
+      environmentVariables,
     };
 
     // Output for Mastra playground
@@ -78,16 +126,30 @@ async function getProjectContext(projectId: string) {
     console.log("📊 Context Details:");
     console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
     console.log("Project:");
-    console.log(`  Name:            ${project.name}`);
-    console.log(`  ID:              ${project.id}`);
-    console.log(`  Neon Project:    ${project.neonProjectId}`);
-    console.log(`  Repository:      ${project.repoId}`);
-    console.log(`  Thread ID:       ${project.threadId}`);
-    console.log(`  Created:         ${project.createdAt}`);
-    console.log(`  Updated:         ${project.updatedAt}`);
+    console.log(`  Name:              ${project.name}`);
+    console.log(`  ID:                ${project.id}`);
+    console.log(`  Neon Project:      ${project.neonProjectId}`);
+    console.log(`  Repository:        ${project.repoId}`);
+    console.log(`  Thread ID:         ${project.threadId}`);
+    console.log(
+      `  Current Version:   ${project.currentDevVersionId || "(none)"}`,
+    );
+    console.log(`  Created:           ${project.createdAt}`);
+    console.log(`  Updated:           ${project.updatedAt}`);
     console.log("\nUser:");
-    console.log(`  User ID:         ${userContext.userId}`);
-    console.log(`  Display Name:    ${userContext.displayName || "(none)"}`);
+    console.log(`  User ID:           ${userContext.userId}`);
+    console.log(`  Display Name:      ${userContext.displayName || "(none)"}`);
+    console.log("\nContext:");
+    console.log(`  Assistant Msg ID:  ${assistantMessageId}`);
+    console.log(
+      `  Env Variables:     ${Object.keys(environmentVariables).length} variables`,
+    );
+    if (Object.keys(environmentVariables).length > 0) {
+      console.log("  Variable Keys:");
+      Object.keys(environmentVariables).forEach((key) => {
+        console.log(`    - ${key}`);
+      });
+    }
     console.log("");
 
     process.exit(0);
