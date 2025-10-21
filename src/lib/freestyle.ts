@@ -83,20 +83,41 @@ export class FreestyleService {
 
       // Update .env file with the latest environment variables
       console.log(
-        "[Freestyle] Updating .env file with environment variables...",
+        "[Freestyle] Checking .env file for environment variables...",
       );
       const envContent = Object.entries(environmentVariables)
         .map(([key, value]) => `${key}=${value}`)
         .join("\n");
 
-      await devServerResponse.fs.writeFile(
-        "/template/.env",
-        envContent,
-        "utf-8",
-      );
-      console.log(
-        `[Freestyle] Successfully wrote ${Object.keys(environmentVariables).length} environment variables to .env`,
-      );
+      // Read existing .env file to check if content has changed
+      let existingContent = "";
+      try {
+        existingContent = await devServerResponse.fs.readFile(
+          "/template/.env",
+          "utf-8",
+        );
+      } catch (error) {
+        console.log("[Freestyle] .env file does not exist yet, will create it");
+      }
+
+      // Only write if content has changed to avoid triggering unnecessary reloads
+      if (existingContent !== envContent) {
+        console.log(
+          "[Freestyle] Environment variables changed, updating .env file...",
+        );
+        await devServerResponse.fs.writeFile(
+          "/template/.env",
+          envContent,
+          "utf-8",
+        );
+        console.log(
+          `[Freestyle] Successfully wrote ${Object.keys(environmentVariables).length} environment variables to .env`,
+        );
+      } else {
+        console.log(
+          "[Freestyle] Environment variables unchanged, skipping .env update to avoid reload",
+        );
+      }
 
       return devServerResponse;
     } catch (error) {

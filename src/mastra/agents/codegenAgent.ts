@@ -209,11 +209,11 @@ This is CRITICAL - always commit changes as your final step after each task comp
 
   model: [
     {
-      model: openai("gpt-4o-mini"),
+      model: anthropic("claude-haiku-4-5"),
       maxRetries: 1,
     },
     {
-      model: anthropic("claude-haiku-4-5"),
+      model: openai("gpt-5"),
       maxRetries: 1,
     },
   ],
