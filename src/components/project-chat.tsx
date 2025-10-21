@@ -9,6 +9,10 @@ import { Thread } from "@/components/assistant-ui/thread";
 import { AssistantCloud } from "@assistant-ui/react";
 import { ProfileButton } from "@/components/profile-button";
 import { VersionsDropdown } from "@/components/versions-dropdown";
+import {
+  ProjectContextProvider,
+  useProjectData,
+} from "@/components/project-context";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ExternalLink, Rocket, Code2, ArrowLeft } from "lucide-react";
@@ -23,30 +27,33 @@ interface ProjectChatProps {
   repoId: string;
   threadId: string;
   deploymentUrl: string;
-  codeServerUrl: string;
+  devServerUrl: string | null;
+  codeServerUrl: string | null;
   accessToken: string;
 }
 
-export const ProjectChat = ({
+const ProjectChatContent = ({
   projectId,
   projectName,
   repoId,
   threadId,
   deploymentUrl,
+  devServerUrl,
   codeServerUrl,
   accessToken,
 }: ProjectChatProps) => {
+  const { currentVersionId } = useProjectData();
   const [isDeploying, setIsDeploying] = useState(false);
 
   // Wrap the action to include projectId
   const wrappedRequestDevServer = async (args: { repoId: string }) => {
-    return await requestDevServer({ repoId: args.repoId, projectId });
+    return await requestDevServer({ projectId });
   };
 
   const handleDeploy = async () => {
     setIsDeploying(true);
     try {
-      const response = await fetch(`/api/projects/${projectId}/deploy`, {
+      const response = await fetch(`/api/v1/projects/${projectId}/deploy`, {
         method: "POST",
       });
       if (!response.ok) {
@@ -91,6 +98,7 @@ export const ProjectChat = ({
   }, [runtime, threadId]);
 
   const isThreadReady = runtime.threads.getState().mainThreadId === threadId;
+  const isVersionReady = currentVersionId !== null;
 
   return (
     <AssistantRuntimeProvider runtime={runtime}>
@@ -107,14 +115,26 @@ export const ProjectChat = ({
             <VersionsDropdown projectId={projectId} accessToken={accessToken} />
           </div>
           <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => window.open(codeServerUrl, "_blank")}
-            >
-              <Code2 className="h-4 w-4 mr-2" />
-              View Code
-            </Button>
+            {codeServerUrl && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.open(codeServerUrl, "_blank")}
+              >
+                <Code2 className="h-4 w-4 mr-2" />
+                View Code
+              </Button>
+            )}
+            {devServerUrl && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.open(devServerUrl, "_blank")}
+              >
+                <ExternalLink className="h-4 w-4 mr-2" />
+                Open Dev Preview
+              </Button>
+            )}
             <Button
               variant="outline"
               size="sm"
@@ -123,7 +143,11 @@ export const ProjectChat = ({
               <ExternalLink className="h-4 w-4 mr-2" />
               View Live Site
             </Button>
-            <Button size="sm" onClick={handleDeploy} disabled={isDeploying}>
+            <Button
+              size="sm"
+              onClick={handleDeploy}
+              disabled={isDeploying || !isVersionReady}
+            >
               <Rocket className="h-4 w-4 mr-2" />
               {isDeploying ? "Deploying..." : "Deploy"}
             </Button>
@@ -133,7 +157,7 @@ export const ProjectChat = ({
         <div className="flex flex-1 overflow-hidden">
           {/* Chat side */}
           <div className="flex-1 overflow-hidden border-r">
-            {isThreadReady ? (
+            {isThreadReady && isVersionReady ? (
               <Thread />
             ) : (
               <div className="flex flex-col h-full p-4 gap-4">
@@ -149,13 +173,35 @@ export const ProjectChat = ({
           </div>
           {/* Preview side */}
           <div className="flex-1 overflow-hidden bg-muted">
-            <FreestyleDevServer
-              actions={{ requestDevServer: wrappedRequestDevServer }}
-              repoId={repoId}
-            />
+            {isVersionReady ? (
+              <FreestyleDevServer
+                actions={{ requestDevServer: wrappedRequestDevServer }}
+                repoId={repoId}
+              />
+            ) : (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center space-y-2">
+                  <div className="text-muted-foreground">
+                    Initializing project...
+                  </div>
+                  <Skeleton className="h-4 w-48 mx-auto" />
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
     </AssistantRuntimeProvider>
+  );
+};
+
+export const ProjectChat = (props: ProjectChatProps) => {
+  return (
+    <ProjectContextProvider
+      projectId={props.projectId}
+      accessToken={props.accessToken}
+    >
+      <ProjectChatContent {...props} />
+    </ProjectContextProvider>
   );
 };

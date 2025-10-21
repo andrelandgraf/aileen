@@ -4,8 +4,8 @@ import { db } from "@/lib/db/db";
 import { projectsTable } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { ProjectChat } from "@/components/project-chat";
-import { freestyleService } from "@/lib/freestyle";
-import { neonService } from "@/lib/neon";
+import { generateDeploymentUrl } from "@/lib/freestyle";
+import { requestDevServer } from "@/lib/dev-server";
 
 interface ProjectPageProps {
   params: Promise<{
@@ -27,43 +27,37 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
     notFound();
   }
 
-  // Request dev server to get ephemeral URL for preview
-  console.log("[Project Page] Requesting dev server for preview...");
-  console.log("[Project Page] This may take 20-30 seconds on cold start...");
+  // Only request dev server if project has a current version initialized
+  let codeServerUrl: string | null = null;
+  let devServerUrl: string | null = null;
 
-  // Get the database connection URI
-  const databaseUrl = await neonService.getConnectionUri({
-    projectId: project.neonProjectId,
-  });
+  if (project.currentDevVersionId) {
+    console.log("[Project Page] Requesting dev server for preview...");
+    console.log("[Project Page] This may take 20-30 seconds on cold start...");
 
-  // Request dev server using the freestyle service
-  const devServerResponse = await freestyleService.requestDevServer({
-    repoId: project.repoId,
-    secrets: {
-      DATABASE_URL: databaseUrl,
-    },
-  });
+    // Request dev server using the dev-server service
+    // This will automatically fetch secrets and allowlist the domain
+    const devServerResponse = await requestDevServer(project);
 
-  const { ephemeralUrl, codeServerUrl, isNew } = devServerResponse;
+    codeServerUrl = devServerResponse.codeServerUrl;
+    devServerUrl = devServerResponse.ephemeralUrl;
 
-  console.log("[Project Page] Dev server ready:", {
-    ephemeralUrl,
-    codeServerUrl,
-    isNew,
-  });
+    console.log("[Project Page] Dev server ready:", {
+      ephemeralUrl: devServerResponse.ephemeralUrl,
+      codeServerUrl,
+      isNew: devServerResponse.isNew,
+    });
+  } else {
+    console.log(
+      "[Project Page] No current version yet, skipping dev server request",
+    );
+  }
 
-  // Create custom domain for deployment URL
-  const sanitizeDomain = (str: string) =>
-    str
-      .toLowerCase()
-      .replace(/[^a-z0-9-]/g, "-")
-      .replace(/-+/g, "-")
-      .replace(/^-|-$/g, "");
-
-  const projectSlug = sanitizeDomain(project.name);
-  const userSlug = sanitizeDomain(user.displayName || user.id);
-  const deploymentDomain = `${projectSlug}-${userSlug}.style.dev`;
-  const deploymentUrl = `https://${deploymentDomain}`;
+  // Generate deployment URL
+  const { url: deploymentUrl } = generateDeploymentUrl(
+    project.name,
+    user.displayName || user.id,
+  );
 
   console.log("[Project Page] Deployment URL:", deploymentUrl);
 
@@ -81,6 +75,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
       repoId={project.repoId}
       threadId={project.threadId}
       deploymentUrl={deploymentUrl}
+      devServerUrl={devServerUrl}
       codeServerUrl={codeServerUrl}
       accessToken={accessToken}
     />

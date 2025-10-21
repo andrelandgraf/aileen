@@ -89,6 +89,7 @@ export class FreestyleService {
       const envContent = Object.entries(secrets)
         .map(([key, value]) => `${key}=${value}`)
         .join("\n");
+      console.log("[Freestyle] Environment variables:", envContent);
 
       await devServerResponse.fs.writeFile(
         "/template/.env",
@@ -185,4 +186,35 @@ export async function setMainBranchToCommit(
       `Failed to set main branch to commit: ${error instanceof Error ? error.message : String(error)}`,
     );
   }
+}
+
+/**
+ * Sanitizes a string for use in a domain name
+ * @param str - The string to sanitize
+ * @returns A sanitized string safe for domain names
+ */
+function sanitizeDomain(str: string): string {
+  return str
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+/**
+ * Generates a deployment URL for a project
+ * @param projectName - The name of the project
+ * @param userIdentifier - The user's display name or ID
+ * @returns An object containing the domain and full URL
+ */
+export function generateDeploymentUrl(
+  projectName: string,
+  userIdentifier: string,
+): { domain: string; url: string } {
+  const projectSlug = sanitizeDomain(projectName);
+  const userSlug = sanitizeDomain(userIdentifier);
+  const domain = `${projectSlug}-${userSlug}.style.dev`;
+  const url = `https://${domain}`;
+
+  return { domain, url };
 }

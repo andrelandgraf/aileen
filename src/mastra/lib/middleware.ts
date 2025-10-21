@@ -1,6 +1,6 @@
 import { getUser } from "./stackauth";
 import { db } from "@/lib/db/db";
-import { projectsTable } from "@/lib/db/schema";
+import { projectSecretsTable, projectsTable } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import type { Context, Next } from "hono";
 import type { UserContext } from "./context";
@@ -82,14 +82,31 @@ export async function auth(c: Context, next: Next) {
     const messages = body.messages as Array<{ id: string; role: string }>;
     const lastMessage = messages?.[messages.length - 1];
     const assistantMessageId = lastMessage?.id;
-
     if (!assistantMessageId) {
       console.error("[Mastra Auth] No message ID found in request");
       return c.json({ error: "Missing message ID" }, 400);
     }
-
     console.log("[Mastra Auth] Assistant message ID:", assistantMessageId);
     runtimeContext.set("assistantMessageId", assistantMessageId);
+
+    if (!project.currentDevVersionId) {
+      console.error("[Mastra Auth] No current dev version ID found");
+      return c.json({ error: "No current dev version ID found" }, 400);
+    }
+
+    const [currentDevSecrets] = await db
+      .select()
+      .from(projectSecretsTable)
+      .where(
+        eq(projectSecretsTable.projectVersionId, project.currentDevVersionId),
+      )
+      .limit(1);
+    if (!currentDevSecrets) {
+      console.error("[Mastra Auth] No current dev secrets found");
+      return c.json({ error: "No current dev secrets found" }, 400);
+    }
+    console.log("[Mastra Auth] Current dev secrets found:", currentDevSecrets);
+    runtimeContext.set("environmentVariables", currentDevSecrets.secrets);
 
     await next();
   } catch (error) {

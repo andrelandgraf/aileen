@@ -4,16 +4,9 @@ import { stackServerApp } from "@/lib/stack/server";
 import { db } from "@/lib/db/db";
 import { projectsTable } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
-import { freestyleService } from "@/lib/freestyle";
-import { neonService } from "@/lib/neon";
+import { requestDevServer as requestDevServerService } from "@/lib/dev-server";
 
-export async function requestDevServer({
-  repoId,
-  projectId,
-}: {
-  repoId: string;
-  projectId: string;
-}) {
+export async function requestDevServer({ projectId }: { projectId: string }) {
   // Verify user authentication
   const user = await stackServerApp.getUser({ or: "redirect" });
 
@@ -32,18 +25,14 @@ export async function requestDevServer({
     );
   }
 
-  // Get the database connection URI
-  const databaseUrl = await neonService.getConnectionUri({
-    projectId: project.neonProjectId,
-  });
+  console.log(
+    "[Preview Actions] Requesting dev server for project:",
+    projectId,
+  );
 
-  // Request dev server using the freestyle service
-  const devServerResponse = await freestyleService.requestDevServer({
-    repoId,
-    secrets: {
-      DATABASE_URL: databaseUrl,
-    },
-  });
+  // Request dev server using the dev-server service
+  // This will automatically fetch secrets and allowlist the domain
+  const devServerResponse = await requestDevServerService(project);
 
   console.log("[Preview Actions] Dev server response:", devServerResponse);
   return {

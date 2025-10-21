@@ -4,9 +4,8 @@ import { z } from "zod";
 import { neonMcpClient } from "../mcp/neon";
 import { context7McpClient } from "../mcp/context7";
 import type { CodegenRuntimeContext } from "./context";
-import { eq, asc } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
-import { freestyleService } from "@/lib/freestyle";
 import { neonService } from "@/lib/neon";
 import { db } from "@/lib/db/db";
 import {
@@ -14,6 +13,7 @@ import {
   projectsTable,
   projectSecretsTable,
 } from "@/lib/db/schema";
+import { requestDevServer } from "@/lib/dev-server";
 
 export async function createFreestyleTools(
   repoId: string,
@@ -22,100 +22,18 @@ export async function createFreestyleTools(
   assistantMessageId: string,
   runtimeContext: RuntimeContext<CodegenRuntimeContext>,
 ) {
-  // Fetch the project to get current dev version
-  const [project] = await db
-    .select()
-    .from(projectsTable)
-    .where(eq(projectsTable.id, projectId))
-    .limit(1);
+  const environmentVariables = runtimeContext.get("environmentVariables");
+  const project = runtimeContext.get("project");
 
   if (!project) {
-    throw new Error(`Project ${projectId} not found`);
+    throw new Error("Project context required to request dev server");
   }
 
-  let secrets: Record<string, string> = {};
-
-  // If there's a current dev version, fetch its secrets
-  if (project.currentDevVersionId) {
-    console.log(
-      `[createFreestyleTools] Fetching secrets for version: ${project.currentDevVersionId}`,
-    );
-    const [versionSecrets] = await db
-      .select()
-      .from(projectSecretsTable)
-      .where(
-        eq(projectSecretsTable.projectVersionId, project.currentDevVersionId),
-      )
-      .limit(1);
-
-    if (versionSecrets) {
-      secrets = versionSecrets.secrets;
-      console.log(
-        `[createFreestyleTools] Loaded ${Object.keys(secrets).length} secrets from version`,
-      );
-    } else {
-      console.log(
-        `[createFreestyleTools] No secrets found for version, generating fresh DATABASE_URL`,
-      );
-      // Fallback: generate DATABASE_URL if no secrets found
-      const databaseUrl = await neonService.getConnectionUri({
-        projectId: neonProjectId,
-      });
-      secrets = { DATABASE_URL: databaseUrl };
-    }
-  } else {
-    console.log(
-      `[createFreestyleTools] No current version set, trying to fetch initial version secrets`,
-    );
-    // No current version set - try to fetch the initial version's secrets
-    const [initialVersion] = await db
-      .select()
-      .from(projectVersionsTable)
-      .where(eq(projectVersionsTable.projectId, projectId))
-      .orderBy(asc(projectVersionsTable.createdAt))
-      .limit(1);
-
-    if (initialVersion) {
-      console.log(
-        `[createFreestyleTools] Found initial version: ${initialVersion.id}`,
-      );
-      const [versionSecrets] = await db
-        .select()
-        .from(projectSecretsTable)
-        .where(eq(projectSecretsTable.projectVersionId, initialVersion.id))
-        .limit(1);
-
-      if (versionSecrets) {
-        secrets = versionSecrets.secrets;
-        console.log(
-          `[createFreestyleTools] Loaded ${Object.keys(secrets).length} secrets from initial version`,
-        );
-      }
-    }
-
-    // Final fallback if still no secrets
-    if (Object.keys(secrets).length === 0) {
-      console.log(
-        `[createFreestyleTools] No secrets found, generating fresh DATABASE_URL`,
-      );
-      const databaseUrl = await neonService.getConnectionUri({
-        projectId: neonProjectId,
-      });
-      secrets = { DATABASE_URL: databaseUrl };
-    }
-  }
-
-  // Initialize environment variables in runtime context
-  console.log(
-    `[createFreestyleTools] Initializing environment variables in context`,
+  // Request dev server using the dev server service with provided environment variables
+  const devServerResponse = await requestDevServer(
+    project,
+    environmentVariables,
   );
-  runtimeContext.set("environmentVariables", secrets);
-
-  // Request dev server using the freestyle service
-  const devServerResponse = await freestyleService.requestDevServer({
-    repoId,
-    secrets,
-  });
 
   const { commitAndPush, process, fs } = devServerResponse;
 
@@ -416,45 +334,13 @@ export async function createFreestyleTools(
           versionId: version.id,
         };
       } catch (error) {
-        // Extract detailed error information
-        let errorMessage = "Unknown error";
-        let errorDetails: any = {};
-
-        if (error instanceof Error) {
-          errorMessage = error.message;
-          errorDetails = {
-            name: error.name,
-            message: error.message,
-            stack: error.stack,
-            // Include any additional properties
-            ...(error as any),
-          };
-        } else if (typeof error === "object" && error !== null) {
-          // Try to extract useful information from error object
-          errorDetails = error;
-          errorMessage =
-            (error as any).message ||
-            (error as any).error ||
-            (error as any).statusText ||
-            JSON.stringify(error);
-        } else {
-          errorMessage = String(error);
-          errorDetails = { raw: error };
-        }
-
         console.error(
           `[freestyle-commit-and-push] Error committing and pushing:`,
-          JSON.stringify(
-            errorDetails,
-            Object.getOwnPropertyNames(errorDetails),
-            2,
-          ),
+          error,
         );
-        console.error(`[freestyle-commit-and-push] Error object:`, error);
-
         return {
           success: false,
-          message: `Failed to commit and push: ${errorMessage}`,
+          message: `Failed to commit and push: ${error instanceof Error ? error.message : String(error)}`,
         };
       }
     },

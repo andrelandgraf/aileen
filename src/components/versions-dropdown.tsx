@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
 import {
   Select,
   SelectContent,
@@ -9,7 +9,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { History, Loader2 } from "lucide-react";
-import { ProjectVersion } from "@/lib/db/schema";
+import { useProjectData } from "@/components/project-context";
 
 interface VersionsDropdownProps {
   projectId: string;
@@ -20,60 +20,17 @@ export function VersionsDropdown({
   projectId,
   accessToken,
 }: VersionsDropdownProps) {
-  const [versions, setVersions] = useState<ProjectVersion[]>([]);
-  const [currentVersion, setCurrentVersion] = useState<string>("");
-  const [isLoading, setIsLoading] = useState(false);
+  const { versions, currentVersionId, refreshVersions } = useProjectData();
   const [isRestoring, setIsRestoring] = useState(false);
 
-  const fetchVersions = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      const response = await fetch(`/api/projects/${projectId}/versions`, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch versions");
-      }
-
-      const data = await response.json();
-      setVersions(data.versions);
-
-      // Set the current version from the API response (the project's currentDevVersionId)
-      if (data.currentDevVersionId) {
-        setCurrentVersion(data.currentDevVersionId);
-      } else if (data.versions.length > 0 && !currentVersion) {
-        // Fallback to latest version if no current version is set
-        setCurrentVersion(data.versions[0].id);
-      }
-    } catch (error) {
-      console.error("[Versions] Error fetching versions:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [projectId, accessToken, currentVersion]);
-
-  // Initial fetch and polling every 5 seconds
-  useEffect(() => {
-    fetchVersions();
-
-    const interval = setInterval(() => {
-      fetchVersions();
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, [fetchVersions]);
-
   const handleVersionChange = async (versionId: string) => {
-    if (versionId === currentVersion) return;
+    if (versionId === currentVersionId) return;
 
     try {
       setIsRestoring(true);
       console.log("[Versions] Restoring version:", versionId);
 
-      const response = await fetch(`/api/projects/${projectId}/versions`, {
+      const response = await fetch(`/api/v1/projects/${projectId}/versions`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -90,8 +47,6 @@ export function VersionsDropdown({
       const data = await response.json();
       console.log("[Versions] Version restored successfully:", data);
 
-      setCurrentVersion(versionId);
-
       // Refresh the page to load the restored version
       window.location.reload();
     } catch (error) {
@@ -103,6 +58,18 @@ export function VersionsDropdown({
       setIsRestoring(false);
     }
   };
+
+  // Show "Initializing first version" if no current version exists yet
+  if (currentVersionId === null) {
+    return (
+      <div className="flex items-center gap-2">
+        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+        <span className="text-sm text-muted-foreground">
+          Initializing first version...
+        </span>
+      </div>
+    );
+  }
 
   if (versions.length === 0) {
     return null;
@@ -121,13 +88,13 @@ export function VersionsDropdown({
     return summary.substring(0, maxLength) + "...";
   };
 
-  const selectedVersion = versions.find((v) => v.id === currentVersion);
+  const selectedVersion = versions.find((v) => v.id === currentVersionId);
 
   return (
     <div className="flex items-center gap-2">
       <History className="h-4 w-4 text-muted-foreground" />
       <Select
-        value={currentVersion}
+        value={currentVersionId}
         onValueChange={handleVersionChange}
         disabled={isRestoring}
       >
@@ -166,9 +133,6 @@ export function VersionsDropdown({
           ))}
         </SelectContent>
       </Select>
-      {isLoading && !isRestoring && (
-        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-      )}
     </div>
   );
 }

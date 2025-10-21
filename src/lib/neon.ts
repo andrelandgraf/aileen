@@ -271,6 +271,47 @@ export class NeonService {
     return json;
   }
 
+  async getNeonAuthKeys(
+    neonProjectId: string,
+    authProvider = "stack",
+  ): Promise<InitNeonAuthResponse> {
+    console.log(
+      "[Neon] Getting Neon Auth keys for project:",
+      neonProjectId,
+      "provider:",
+      authProvider,
+    );
+
+    const res = await fetch(
+      `${this.baseUrl}/projects/${neonProjectId}/auth/keys`,
+      {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          Authorization: `Bearer ${this.apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          auth_provider: authProvider,
+        }),
+        cache: "no-store",
+      },
+    );
+
+    console.log("[Neon] Response status:", res.status);
+
+    if (!res.ok) {
+      const text = await res.text();
+      console.error("[Neon] Error response:", text);
+      throw new Error(`Failed to get Neon Auth keys: ${res.status} ${text}`);
+    }
+
+    const json = (await res.json()) as InitNeonAuthResponse;
+    console.log("[Neon] Neon Auth keys retrieved");
+
+    return json;
+  }
+
   async listAuthDomains(neonProjectId: string): Promise<AuthDomain[]> {
     console.log("[Neon] Listing auth domains for project:", neonProjectId);
 

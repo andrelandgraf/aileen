@@ -59,7 +59,7 @@ export function ProjectsList({ projects }: ProjectsListProps) {
 
     setIsDeleting(true);
     try {
-      const response = await fetch(`/api/projects/${deletingProject.id}`, {
+      const response = await fetch(`/api/v1/projects/${deletingProject.id}`, {
         method: "DELETE",
       });
 

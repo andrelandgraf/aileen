@@ -136,26 +136,18 @@ export async function POST(req: Request, { params }: RouteParams) {
       .from(projectSecretsTable)
       .where(eq(projectSecretsTable.projectVersionId, versionId))
       .limit(1);
-
-    let secrets: Record<string, string>;
-    if (versionSecrets) {
-      secrets = versionSecrets.secrets;
-      console.log("[POST Restore Version] Using secrets from version");
-    } else {
-      console.log(
-        "[POST Restore Version] No secrets found, generating fresh DATABASE_URL",
+    if (!versionSecrets) {
+      return NextResponse.json(
+        { error: "Version secrets not found" },
+        { status: 404 },
       );
-      const databaseUrl = await neonService.getConnectionUri({
-        projectId: project.neonProjectId,
-      });
-      secrets = { DATABASE_URL: databaseUrl };
     }
 
     // Step 2: Request dev server to get process access
     console.log("[POST Restore Version] Requesting dev server...");
     const devServerResponse = await freestyleService.requestDevServer({
       repoId: project.repoId,
-      secrets,
+      secrets: versionSecrets.secrets,
     });
 
     console.log("[POST Restore Version] Dev server ready");

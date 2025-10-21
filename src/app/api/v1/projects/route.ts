@@ -1,12 +1,7 @@
 import { NextResponse } from "next/server";
 import { stackServerApp } from "@/lib/stack/server";
 import { db } from "@/lib/db/db";
-import {
-  projectsTable,
-  projectVersionsTable,
-  projectSecretsTable,
-} from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { projectsTable } from "@/lib/db/schema";
 import { freestyleService } from "@/lib/freestyle";
 import { createAssistantThread } from "@/lib/assistant-ui";
 import { neonService } from "@/lib/neon";
@@ -33,17 +28,20 @@ export async function POST(request: Request) {
       );
     }
 
-    // Create repo in Freestyle
-    console.log("[API] Calling Freestyle API to create repo...");
-    const { repoId } = await freestyleService.createRepo({ name });
+    // Create repo in Freestyle, Neon project, and AssistantCloud thread in parallel
+    console.log(
+      "[API] Calling Freestyle, Neon, and AssistantCloud APIs in parallel...",
+    );
+    const [{ repoId }, { neonProjectId, databaseUrl }, threadId] =
+      await Promise.all([
+        freestyleService.createRepo({ name }),
+        neonService.createProject(name),
+        createAssistantThread(user.id, name),
+      ]);
     console.log("[API] Freestyle repo created with ID:", repoId);
-
-    // Create Neon project
-    console.log("[API] Calling Neon API to create project...");
-    const { neonProjectId, databaseUrl } =
-      await neonService.createProject(name);
     console.log("[API] Neon project created with ID:", neonProjectId);
     console.log("[API] Database URL:", databaseUrl);
+    console.log("[API] Thread created with ID:", threadId);
 
     // Get production branch for Neon Auth initialization
     console.log("[API] Getting production branch...");
@@ -62,11 +60,6 @@ export async function POST(request: Request) {
     console.log("[API] Neon Auth initialized:", {
       projectId: neonAuth.auth_provider_project_id,
     });
-
-    // Create AssistantCloud thread
-    console.log("[API] Creating AssistantCloud thread...");
-    const threadId = await createAssistantThread(user.id, name);
-    console.log("[API] Thread created with ID:", threadId);
 
     // Create project in database with Freestyle repoId, Neon project ID, and thread ID
     console.log("[API] Inserting project into database...");
@@ -90,49 +83,6 @@ export async function POST(request: Request) {
       .returning();
 
     console.log("[API] Project created successfully:", project);
-
-    // Create initial snapshot (version 0)
-    console.log("[API] Creating initial snapshot...");
-    const initialSnapshotId = await neonService.createSnapshot(neonProjectId, {
-      name: "initial",
-    });
-    console.log("[API] Initial snapshot created:", initialSnapshotId);
-
-    // Create initial version 0
-    console.log("[API] Creating initial version 0...");
-    const [initialVersion] = await db
-      .insert(projectVersionsTable)
-      .values({
-        projectId: project.id,
-        gitCommitHash: "initial",
-        neonSnapshotId: initialSnapshotId,
-        assistantMessageId: null,
-        summary: "Initial project setup",
-      })
-      .returning();
-    console.log("[API] Initial version created:", initialVersion);
-
-    // Create initial secrets with Neon Auth environment variables
-    console.log("[API] Creating initial secrets...");
-    const initialSecrets = {
-      NEXT_PUBLIC_STACK_PROJECT_ID: neonAuth.auth_provider_project_id,
-      NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY: neonAuth.pub_client_key,
-      STACK_SECRET_SERVER_KEY: neonAuth.secret_server_key,
-      DATABASE_URL: databaseUrl,
-    };
-    await db.insert(projectSecretsTable).values({
-      projectVersionId: initialVersion.id,
-      secrets: initialSecrets,
-    });
-    console.log("[API] Initial secrets created");
-
-    // Set the current dev version to the initial version
-    console.log("[API] Setting current dev version to initial version...");
-    await db
-      .update(projectsTable)
-      .set({ currentDevVersionId: initialVersion.id })
-      .where(eq(projectsTable.id, project.id));
-    console.log("[API] Current dev version set");
 
     revalidatePath("/projects");
 

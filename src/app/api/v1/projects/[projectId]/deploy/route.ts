@@ -5,6 +5,7 @@ import { projectsTable } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { FreestyleSandboxes } from "freestyle-sandboxes";
 import { neonService } from "@/lib/neon";
+import { generateDeploymentUrl } from "@/lib/freestyle";
 
 interface RouteParams {
   params: Promise<{
@@ -15,14 +16,6 @@ interface RouteParams {
 const freestyle = new FreestyleSandboxes({
   apiKey: process.env.FREESTYLE_API_KEY!,
 });
-
-// Helper function to create custom domain
-const sanitizeDomain = (str: string) =>
-  str
-    .toLowerCase()
-    .replace(/[^a-z0-9-]/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "");
 
 export async function POST(req: Request, { params }: RouteParams) {
   try {
@@ -49,11 +42,11 @@ export async function POST(req: Request, { params }: RouteParams) {
       return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
 
-    // Create custom domain
-    const projectSlug = sanitizeDomain(project.name);
-    const userSlug = sanitizeDomain(user.displayName || user.id);
-    const customDomain = `${projectSlug}-${userSlug}.style.dev`;
-    const deploymentUrl = `https://${customDomain}`;
+    // Generate deployment URL
+    const { domain: customDomain, url: deploymentUrl } = generateDeploymentUrl(
+      project.name,
+      user.displayName || user.id,
+    );
 
     console.log("[Deploy API] Deploying to domain:", customDomain);
 
@@ -142,11 +135,11 @@ export async function GET(req: Request, { params }: RouteParams) {
       return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
 
-    // Create custom domain
-    const projectSlug = sanitizeDomain(project.name);
-    const userSlug = sanitizeDomain(user.displayName || user.id);
-    const customDomain = `${projectSlug}-${userSlug}.style.dev`;
-    const deploymentUrl = `https://${customDomain}`;
+    // Generate deployment URL
+    const { domain: customDomain, url: deploymentUrl } = generateDeploymentUrl(
+      project.name,
+      user.displayName || user.id,
+    );
 
     console.log("[Deploy API] Deployment URL:", deploymentUrl);
 
