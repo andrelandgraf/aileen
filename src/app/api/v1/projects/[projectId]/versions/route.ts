@@ -7,8 +7,9 @@ import {
   projectSecretsTable,
 } from "@/lib/db/schema";
 import { eq, and, desc } from "drizzle-orm";
-import { freestyleService, setMainBranchToCommit } from "@/lib/freestyle";
+import { setMainBranchToCommit } from "@/lib/freestyle";
 import { neonService } from "@/lib/neon";
+import { requestDevServer } from "@/lib/dev-server";
 
 interface RouteParams {
   params: Promise<{
@@ -143,12 +144,12 @@ export async function POST(req: Request, { params }: RouteParams) {
       );
     }
 
-    // Step 2: Request dev server to get process access
+    // Step 2: Request dev server to get process access (also allowlists domain in Neon Auth)
     console.log("[POST Restore Version] Requesting dev server...");
-    const devServerResponse = await freestyleService.requestDevServer({
-      repoId: project.repoId,
-      secrets: versionSecrets.secrets,
-    });
+    const devServerResponse = await requestDevServer(
+      project,
+      versionSecrets.secrets,
+    );
 
     console.log("[POST Restore Version] Dev server ready");
 

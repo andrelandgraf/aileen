@@ -12,7 +12,7 @@ interface CreateRepoResponse {
 
 interface RequestDevServerParams {
   repoId: string;
-  secrets: Record<string, string>;
+  environmentVariables: Record<string, string>;
 }
 
 export class FreestyleService {
@@ -65,14 +65,13 @@ export class FreestyleService {
 
   async requestDevServer({
     repoId,
-    secrets,
+    environmentVariables,
   }: RequestDevServerParams): Promise<FreestyleDevServer> {
     console.log("[Freestyle] Requesting dev server for repo:", repoId);
 
     try {
       const devServerResponse = await this.freestyle.requestDevServer({
         repoId,
-        envVars: secrets,
       });
 
       console.log("[Freestyle] Dev server response:", {
@@ -86,10 +85,9 @@ export class FreestyleService {
       console.log(
         "[Freestyle] Updating .env file with environment variables...",
       );
-      const envContent = Object.entries(secrets)
+      const envContent = Object.entries(environmentVariables)
         .map(([key, value]) => `${key}=${value}`)
         .join("\n");
-      console.log("[Freestyle] Environment variables:", envContent);
 
       await devServerResponse.fs.writeFile(
         "/template/.env",
@@ -97,7 +95,7 @@ export class FreestyleService {
         "utf-8",
       );
       console.log(
-        `[Freestyle] Successfully wrote ${Object.keys(secrets).length} environment variables to .env`,
+        `[Freestyle] Successfully wrote ${Object.keys(environmentVariables).length} environment variables to .env`,
       );
 
       return devServerResponse;

@@ -71,7 +71,7 @@ export async function initFirstVersionAfterProjectCreation(
   const [devServerResponse, initialSnapshotId] = await Promise.all([
     freestyleService.requestDevServer({
       repoId: project.repoId,
-      secrets: initialSecrets,
+      environmentVariables: initialSecrets,
     }),
     neonService.createSnapshot(project.neonProjectId, {
       name: "initial",

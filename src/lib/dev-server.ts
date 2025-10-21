@@ -75,7 +75,7 @@ export async function requestDevServer(
   console.log("[DevServer] Requesting Freestyle dev server...");
   const devServerResponse = await freestyleService.requestDevServer({
     repoId: project.repoId,
-    secrets,
+    environmentVariables: secrets,
   });
 
   console.log("[DevServer] Dev server ready:", {
