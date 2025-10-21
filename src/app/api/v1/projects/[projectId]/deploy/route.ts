@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { stackServerApp } from "@/lib/stack/server";
 import { db } from "@/lib/db/db";
-import { projectsTable } from "@/lib/db/schema";
+import { projectsTable, projectSecretsTable } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { FreestyleSandboxes } from "freestyle-sandboxes";
 import { neonService } from "@/lib/neon";
@@ -42,6 +42,14 @@ export async function POST(req: Request, { params }: RouteParams) {
       return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
 
+    // Validate that the project has a current dev version
+    if (!project.currentDevVersionId) {
+      return NextResponse.json(
+        { error: "No current version found. Please create a version first." },
+        { status: 400 },
+      );
+    }
+
     // Generate deployment URL
     const { domain: customDomain, url: deploymentUrl } = generateDeploymentUrl(
       project.name,
@@ -68,6 +76,26 @@ export async function POST(req: Request, { params }: RouteParams) {
       projectId: project.neonProjectId,
     });
 
+    // Fetch secrets for the current dev version
+    console.log(
+      "[Deploy API] Fetching secrets for version:",
+      project.currentDevVersionId,
+    );
+    const [currentDevSecrets] = await db
+      .select()
+      .from(projectSecretsTable)
+      .where(
+        eq(projectSecretsTable.projectVersionId, project.currentDevVersionId),
+      )
+      .limit(1);
+
+    if (!currentDevSecrets) {
+      return NextResponse.json(
+        { error: "No secrets found for current dev version" },
+        { status: 400 },
+      );
+    }
+
     // Trigger deployment (async - don't await)
     freestyle
       .deployWeb(
@@ -77,9 +105,7 @@ export async function POST(req: Request, { params }: RouteParams) {
         },
         {
           domains: [customDomain],
-          envVars: {
-            DATABASE_URL: databaseUrl,
-          },
+          envVars: currentDevSecrets.secrets,
           build: true,
         },
       )

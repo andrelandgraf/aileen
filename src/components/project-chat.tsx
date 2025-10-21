@@ -131,22 +131,22 @@ const ProjectChatContent = ({
                 Open Dev Preview
               </Button>
             )}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => window.open(deploymentUrl, "_blank")}
-            >
-              <ExternalLink className="h-4 w-4 mr-2" />
-              View Live Site
-            </Button>
-            <Button
-              size="sm"
-              onClick={handleDeploy}
-              disabled={isDeploying || !isVersionReady}
-            >
-              <Rocket className="h-4 w-4 mr-2" />
-              {isDeploying ? "Deploying..." : "Deploy"}
-            </Button>
+            {isVersionReady && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.open(deploymentUrl, "_blank")}
+              >
+                <ExternalLink className="h-4 w-4 mr-2" />
+                View Live Site
+              </Button>
+            )}
+            {isVersionReady && (
+              <Button size="sm" onClick={handleDeploy} disabled={isDeploying}>
+                <Rocket className="h-4 w-4 mr-2" />
+                {isDeploying ? "Deploying..." : "Deploy"}
+              </Button>
+            )}
             <ProfileButton />
           </div>
         </header>
