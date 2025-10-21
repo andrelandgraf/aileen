@@ -1,46 +1,44 @@
-# AI Chat Template: Cloudflare, Assistant UI, Neon
+# Aileen - AI something something... get it?
 
-A modern, production-ready template for building full-stack React applications using Next.js on Cloudflare with Assistant UI and Neon.
+An AI-powered development platform that helps developers build and deploy full-stack Next.js applications with automated infrastructure setup.
+
+## Services Used
+
+### Platform Services (Aileen itself)
+
+- **Neon** - Postgres database for storing projects, versions, and secrets
+- **Stack Auth** - Authentication for platform users
+- **Assistant UI** - AI chat interface and conversation persistence
+- **Mastra** - AI agents and workflow orchestration
+- **Inngest** - Background job processing and workflow automation
+
+### Provisioned Per-App (for each project created)
+
+- **Neon** - Dedicated Postgres database with branching support
+- **Stack Auth** - Authentication provider (auto-configured via Neon Auth)
+- **Freestyle.sh** - Cloud development server with git integration
+
+## What Does It Do?
+
+- Creates projects with automated database, auth, and dev server setup
+- Manages project versions with database snapshots and git commits
+- Provides AI chat interface for development guidance
+- Orchestrates complex initialization workflows with Inngest
+- Tracks and manages environment secrets per project version
 
 ## Getting Started
 
 ### Environment Variables
 
-Create a `.env` file in the root of the project by copying the `example.env` file:
+Copy the example environment file and fill in your API keys:
 
 ```bash
 cp example.env .env
 ```
 
-### Set up Neon
-
-We use Neon for Storage (Postgres) and Authentication. The schema is currently very simple and only includes the users_sync table but we can expand for agent memory and application data. [Drizzle](https://orm.drizzle.team/) is used for database schema management.
-
-First, sign up for a Neon account and create a new project: [Neon](https://neon.com/signup)
-
-Next, enable Neon Auth by navigating to Configuration > Environment Variables > Next.js and copy the variables to the `.env` file, replacing the placeholder values.
-
-### Set up Assistant UI Cloud
-
-We use Assistant UI for AI chat functionality and Assistant UI Cloud for persisting the chat history.
-
-Sign up for a Assistant UI Cloud account and create a new project: [Assistant UI Cloud](https://cloud.assistant-ui.com/)
-
-From there, copy the project base URL and project slug and add them to the `.env` file. Optionally, you can also generate an API key and add it to the `.env` file. This is not required for the base setup of this template but useful for additional features.
-
-### Model Provider Setup
-
-This template uses Vercel's AI SDK and Assistant UI for model serving. The `example.env` file has OpenAI set as the provider. Other providers are also supported. Refer to the [AI SDK Providers documentation](https://ai-sdk.dev/docs/foundations/providers-and-models) for more information.
-
-Create a new API key for your preferred provider and add it to the `.env` file.
-
-```txt
-OPENAI_API_KEY=your_openai_api_key
-```
+All required environment variables are documented in `example.env`.
 
 ### Installation
-
-Install the dependencies:
 
 ```bash
 npm install
@@ -48,32 +46,8 @@ npm install
 
 ### Development
 
-Run the development server:
-
 ```bash
 npm run dev
 ```
 
 Your application will be available at `http://localhost:3000`.
-
-## Building for Production
-
-Create a production build:
-
-```bash
-npm run build
-```
-
-## Deployment
-
-Deployment is done using the Wrangler CLI.
-
-To build and deploy directly to production:
-
-```sh
-npm run deploy
-```
-
-## Styling
-
-This template comes with [Shadcn UI](https://ui.shadcn.com/) and [Tailwind CSS](https://tailwindcss.com/) already configured for a simple default starting experience. You can use whatever CSS framework you prefer.
