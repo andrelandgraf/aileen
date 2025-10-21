@@ -6,6 +6,7 @@ import { freestyleService } from "@/lib/freestyle";
 import { createAssistantThread } from "@/lib/assistant-ui";
 import { neonService } from "@/lib/neon";
 import { revalidatePath } from "next/cache";
+import { inngest } from "@/lib/inngest/client";
 
 export async function POST(request: Request) {
   try {
@@ -43,23 +44,9 @@ export async function POST(request: Request) {
     console.log("[API] Database URL:", databaseUrl);
     console.log("[API] Thread created with ID:", threadId);
 
-    // Get production branch for Neon Auth initialization
-    console.log("[API] Getting production branch...");
-    const prodBranch = await neonService.getProductionBranch(neonProjectId);
-    if (!prodBranch?.id) {
-      throw new Error("Production branch not found");
-    }
-    console.log("[API] Production branch ID:", prodBranch.id);
-
-    // Initialize Neon Auth
-    console.log("[API] Initializing Neon Auth...");
-    const neonAuth = await neonService.initNeonAuth(
-      neonProjectId,
-      prodBranch.id,
-    );
-    console.log("[API] Neon Auth initialized:", {
-      projectId: neonAuth.auth_provider_project_id,
-    });
+    try {
+      freestyleService.initializeRawDevServer(repoId);
+    } catch (_) {}
 
     // Create project in database with Freestyle repoId, Neon project ID, and thread ID
     console.log("[API] Inserting project into database...");
@@ -83,6 +70,17 @@ export async function POST(request: Request) {
       .returning();
 
     console.log("[API] Project created successfully:", project);
+
+    console.log("[API] Triggering Inngest event for project initialization...");
+    await inngest.send({
+      name: "projects/initialize-first-version",
+      data: {
+        projectId: project.id,
+        repoId: project.repoId,
+        neonProjectId: project.neonProjectId,
+      },
+    });
+    console.log("[API] Inngest event triggered successfully");
 
     revalidatePath("/projects");
 

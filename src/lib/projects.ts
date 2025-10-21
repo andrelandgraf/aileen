@@ -9,97 +9,135 @@ import { freestyleService, getLatestCommit } from "@/lib/freestyle";
 import { neonService } from "@/lib/neon";
 
 /**
- * Initialize the first version of a project after creation.
- *
- * This includes:
- * 1. Retrieving Neon Auth credentials
- * 2. Creating initial secrets
- * 3. Requesting dev server and creating initial snapshot
- * 4. Getting initial commit hash
- * 5. Creating initial version 0
- * 6. Saving secrets and setting current dev version
- *
- * @param project - The project object to initialize
- * @throws If initialization fails
+ * Atomic step: Get production branch from Neon
  */
-export async function initFirstVersionAfterProjectCreation(
-  project: typeof projectsTable.$inferSelect,
-): Promise<void> {
-  console.log("[Projects] Initializing first version for project:", project.id);
-  console.log("[Projects] Project found:", {
-    repoId: project.repoId,
-    neonProjectId: project.neonProjectId,
+export async function getProductionBranch(neonProjectId: string) {
+  console.log("[Projects] Getting production branch for Neon Auth...");
+  const prodBranch = await neonService.getProductionBranch(neonProjectId);
+  if (!prodBranch?.id) {
+    throw new Error("Production branch not found");
+  }
+  console.log("[Projects] Production branch ID:", prodBranch.id);
+  return prodBranch;
+}
+
+/**
+ * Atomic step: Initialize Neon Auth
+ */
+export async function initNeonAuth(neonProjectId: string, branchId: string) {
+  console.log("[Projects] Initializing Neon Auth...");
+  const neonAuth = await neonService.initNeonAuth(neonProjectId, branchId);
+  console.log("[Projects] Neon Auth initialized:", {
+    projectId: neonAuth.auth_provider_project_id,
   });
+  return neonAuth;
+}
 
-  // Retrieve Neon Auth credentials and connection URI in parallel
-  console.log(
-    "[Projects] Retrieving Neon Auth credentials and connection URI in parallel...",
-  );
-  const [neonAuth, databaseUrl] = await Promise.all([
-    neonService.getNeonAuthKeys(project.neonProjectId),
-    neonService.getConnectionUri({
-      projectId: project.neonProjectId,
-    }),
-  ]);
-  console.log("[Projects] Neon Auth credentials and database URL retrieved");
+/**
+ * Atomic step: Get database connection URI from Neon
+ */
+export async function getDatabaseConnectionUri(neonProjectId: string) {
+  console.log("[Projects] Getting database connection URI...");
+  const databaseUrl = await neonService.getConnectionUri({
+    projectId: neonProjectId,
+  });
+  console.log("[Projects] Database URL retrieved");
+  return databaseUrl;
+}
 
-  // Create initial secrets with Neon Auth environment variables
-  console.log("[Projects] Creating initial secrets object...");
-  const initialSecrets = {
-    NEXT_PUBLIC_STACK_PROJECT_ID: neonAuth.auth_provider_project_id,
-    NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY: neonAuth.pub_client_key,
-    STACK_SECRET_SERVER_KEY: neonAuth.secret_server_key,
-    DATABASE_URL: databaseUrl,
-  };
+/**
+ * Atomic step: Request dev server and get initial commit hash
+ */
+export async function requestDevServer(
+  repoId: string,
+  secrets: Record<string, string>,
+) {
+  console.log("[Projects] Requesting dev server...");
+  const devServerResponse = await freestyleService.requestDevServer({
+    repoId,
+    environmentVariables: secrets,
+  });
+  const initialCommitHash = await getLatestCommit(devServerResponse.process);
+  console.log("[Projects] Dev server ready, commit hash:", initialCommitHash);
+  return initialCommitHash;
+}
 
-  // Request dev server and create initial snapshot in parallel
-  console.log(
-    "[Projects] Requesting dev server and creating initial snapshot in parallel...",
-  );
-  const [initialCommitHash, initialSnapshotId] = await Promise.all([
-    freestyleService
-      .requestDevServer({
-        repoId: project.repoId,
-        environmentVariables: initialSecrets,
-      })
-      .then((devServerResponse) => getLatestCommit(devServerResponse.process)),
-    neonService.createSnapshot(project.neonProjectId, {
-      name: "initial",
-    }),
-  ]);
-  console.log(
-    "[Projects] Dev server ready, initial snapshot created, and initial commit hash retrieved:",
-    initialCommitHash,
-  );
+/**
+ * Atomic step: Create initial Neon snapshot
+ */
+export async function createInitialSnapshot(neonProjectId: string) {
+  console.log("[Projects] Creating initial snapshot...");
+  const snapshotId = await neonService.createSnapshot(neonProjectId, {
+    name: "initial",
+  });
+  console.log("[Projects] Initial snapshot created:", snapshotId);
+  return snapshotId;
+}
 
-  // Create initial version 0 with the actual commit hash
+/**
+ * Atomic step: Create initial project version record
+ */
+export async function createInitialVersion(
+  projectId: string,
+  gitCommitHash: string,
+  neonSnapshotId: string,
+) {
   console.log("[Projects] Creating initial version 0...");
   const [initialVersion] = await db
     .insert(projectVersionsTable)
     .values({
-      projectId: project.id,
-      gitCommitHash: initialCommitHash,
-      neonSnapshotId: initialSnapshotId,
+      projectId,
+      gitCommitHash,
+      neonSnapshotId,
       assistantMessageId: null,
       summary: "Initial project setup",
     })
     .returning();
   console.log("[Projects] Initial version created:", initialVersion);
+  return initialVersion;
+}
 
-  // Save initial secrets and set current dev version in parallel
-  console.log(
-    "[Projects] Saving initial secrets and setting current dev version in parallel...",
-  );
-  await Promise.all([
-    db.insert(projectSecretsTable).values({
-      projectVersionId: initialVersion.id,
-      secrets: initialSecrets,
-    }),
-    db
-      .update(projectsTable)
-      .set({ currentDevVersionId: initialVersion.id })
-      .where(eq(projectsTable.id, project.id)),
-  ]);
-  console.log("[Projects] Initial secrets saved and current dev version set");
-  console.log("[Projects] First version initialization complete");
+/**
+ * Atomic step: Save project secrets
+ */
+export async function saveProjectSecrets(
+  versionId: string,
+  secrets: Record<string, string>,
+) {
+  console.log("[Projects] Saving project secrets...");
+  await db.insert(projectSecretsTable).values({
+    projectVersionId: versionId,
+    secrets,
+  });
+  console.log("[Projects] Project secrets saved");
+}
+
+/**
+ * Atomic step: Set current dev version
+ */
+export async function setCurrentDevVersion(
+  projectId: string,
+  versionId: string,
+) {
+  console.log("[Projects] Setting current dev version...");
+  await db
+    .update(projectsTable)
+    .set({ currentDevVersionId: versionId })
+    .where(eq(projectsTable.id, projectId));
+  console.log("[Projects] Current dev version set");
+}
+
+/**
+ * Helper: Build secrets object from Neon Auth response
+ */
+export function buildSecretsFromNeonAuth(
+  neonAuth: Awaited<ReturnType<typeof neonService.initNeonAuth>>,
+  databaseUrl: string,
+) {
+  return {
+    NEXT_PUBLIC_STACK_PROJECT_ID: neonAuth.auth_provider_project_id,
+    NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY: neonAuth.pub_client_key,
+    STACK_SECRET_SERVER_KEY: neonAuth.secret_server_key,
+    DATABASE_URL: databaseUrl,
+  };
 }

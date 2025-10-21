@@ -5,6 +5,7 @@ import { db } from "@/lib/db/db";
 import { projectsTable } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { requestDevServer as requestDevServerService } from "@/lib/dev-server";
+import { generateDeploymentUrl } from "@/lib/freestyle";
 
 export async function requestDevServer({ projectId }: { projectId: string }) {
   // Verify user authentication
@@ -40,4 +41,60 @@ export async function requestDevServer({ projectId }: { projectId: string }) {
     devCommandRunning: devServerResponse.devCommandRunning,
     installCommandRunning: devServerResponse.installCommandRunning,
   };
+}
+
+export async function getDevServerUrls({ projectId }: { projectId: string }) {
+  // Verify user authentication
+  const user = await stackServerApp.getUser({ or: "redirect" });
+
+  // Fetch the project and verify user has access
+  const [project] = await db
+    .select()
+    .from(projectsTable)
+    .where(
+      and(eq(projectsTable.id, projectId), eq(projectsTable.userId, user.id)),
+    )
+    .limit(1);
+
+  if (!project) {
+    throw new Error(
+      `Project not found or you don't have access to it: ${projectId}`,
+    );
+  }
+
+  console.log(
+    "[Preview Actions] Getting dev server URLs for project:",
+    projectId,
+  );
+
+  // Generate deployment URL
+  const { url: deploymentUrl } = generateDeploymentUrl(
+    project.name,
+    user.displayName || user.id,
+  );
+
+  try {
+    // Request dev server to get latest URLs
+    const devServerResponse = await requestDevServerService(project);
+
+    return {
+      devServerUrl: devServerResponse.ephemeralUrl,
+      codeServerUrl: devServerResponse.codeServerUrl,
+      deploymentUrl,
+      devCommandRunning: devServerResponse.devCommandRunning,
+      installCommandRunning: devServerResponse.installCommandRunning,
+    };
+  } catch (error) {
+    // If dev server is not available yet, return deployment URL only
+    console.log(
+      "[Preview Actions] Dev server not available yet, returning deployment URL only",
+    );
+    return {
+      devServerUrl: null,
+      codeServerUrl: null,
+      deploymentUrl,
+      devCommandRunning: false,
+      installCommandRunning: false,
+    };
+  }
 }

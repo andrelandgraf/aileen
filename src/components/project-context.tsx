@@ -9,6 +9,7 @@ import {
   ReactNode,
 } from "react";
 import { ProjectVersion } from "@/lib/db/schema";
+import { DevServerContextProvider } from "@/components/dev-server-context";
 
 interface ProjectData {
   versions: ProjectVersion[];
@@ -83,7 +84,14 @@ export function ProjectContextProvider({
   };
 
   return (
-    <ProjectContext.Provider value={value}>{children}</ProjectContext.Provider>
+    <ProjectContext.Provider value={value}>
+      <DevServerContextProvider
+        projectId={projectId}
+        shouldFetch={currentVersionId !== null}
+      >
+        {children}
+      </DevServerContextProvider>
+    </ProjectContext.Provider>
   );
 }
 

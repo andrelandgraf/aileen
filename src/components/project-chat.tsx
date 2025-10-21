@@ -13,6 +13,7 @@ import {
   ProjectContextProvider,
   useProjectData,
 } from "@/components/project-context";
+import { useDevServerData } from "@/components/dev-server-context";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ExternalLink, Rocket, Code2, ArrowLeft } from "lucide-react";
@@ -26,9 +27,6 @@ interface ProjectChatProps {
   projectName: string;
   repoId: string;
   threadId: string;
-  deploymentUrl: string;
-  devServerUrl: string | null;
-  codeServerUrl: string | null;
   accessToken: string;
 }
 
@@ -37,12 +35,10 @@ const ProjectChatContent = ({
   projectName,
   repoId,
   threadId,
-  deploymentUrl,
-  devServerUrl,
-  codeServerUrl,
   accessToken,
 }: ProjectChatProps) => {
   const { currentVersionId } = useProjectData();
+  const { devServerUrl, codeServerUrl, deploymentUrl } = useDevServerData();
   const [isDeploying, setIsDeploying] = useState(false);
 
   // Wrap the action to include projectId

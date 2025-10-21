@@ -41,17 +41,7 @@ export function CreateProjectButton() {
 
       const project = await response.json();
 
-      // Trigger initialization of the first version without waiting for it
-      fetch("/api/v1/projects/versions/init", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ projectId: project.id }),
-      }).catch((error) => {
-        console.error("Error initializing project version:", error);
-      });
-
+      // First version initialization is now triggered automatically via Inngest
       setOpen(false);
       setName("");
       router.push(`/projects/${project.id}`);

@@ -63,6 +63,14 @@ export class FreestyleService {
     }
   }
 
+  async initializeRawDevServer(repoId: string): Promise<void> {
+    try {
+      this.freestyle.requestDevServer({
+        repoId,
+      });
+    } catch (_) {}
+  }
+
   async requestDevServer({
     repoId,
     environmentVariables,

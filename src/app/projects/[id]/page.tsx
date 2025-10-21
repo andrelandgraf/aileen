@@ -27,40 +27,6 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
     notFound();
   }
 
-  // Only request dev server if project has a current version initialized
-  let codeServerUrl: string | null = null;
-  let devServerUrl: string | null = null;
-
-  if (project.currentDevVersionId) {
-    console.log("[Project Page] Requesting dev server for preview...");
-    console.log("[Project Page] This may take 20-30 seconds on cold start...");
-
-    // Request dev server using the dev-server service
-    // This will automatically fetch secrets and allowlist the domain
-    const devServerResponse = await requestDevServer(project);
-
-    codeServerUrl = devServerResponse.codeServerUrl;
-    devServerUrl = devServerResponse.ephemeralUrl;
-
-    console.log("[Project Page] Dev server ready:", {
-      ephemeralUrl: devServerResponse.ephemeralUrl,
-      codeServerUrl,
-      isNew: devServerResponse.isNew,
-    });
-  } else {
-    console.log(
-      "[Project Page] No current version yet, skipping dev server request",
-    );
-  }
-
-  // Generate deployment URL
-  const { url: deploymentUrl } = generateDeploymentUrl(
-    project.name,
-    user.displayName || user.id,
-  );
-
-  console.log("[Project Page] Deployment URL:", deploymentUrl);
-
   // Get access token to pass to client component
   const authJson = await user.getAuthJson();
   if (!authJson.accessToken) {
@@ -74,9 +40,6 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
       projectName={project.name}
       repoId={project.repoId}
       threadId={project.threadId}
-      deploymentUrl={deploymentUrl}
-      devServerUrl={devServerUrl}
-      codeServerUrl={codeServerUrl}
       accessToken={accessToken}
     />
   );
