@@ -282,21 +282,19 @@ export class NeonService {
       authProvider,
     );
 
-    const res = await fetch(
-      `${this.baseUrl}/projects/${neonProjectId}/auth/keys`,
-      {
-        method: "POST",
-        headers: {
-          Accept: "application/json",
-          Authorization: `Bearer ${this.apiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          auth_provider: authProvider,
-        }),
-        cache: "no-store",
+    const res = await fetch(`${this.baseUrl}/projects/auth/keys`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        Authorization: `Bearer ${this.apiKey}`,
+        "Content-Type": "application/json",
       },
-    );
+      body: JSON.stringify({
+        auth_provider: authProvider,
+        project_id: neonProjectId,
+      }),
+      cache: "no-store",
+    });
 
     console.log("[Neon] Response status:", res.status);
 
