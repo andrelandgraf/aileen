@@ -19,41 +19,29 @@ import { neonService } from "@/lib/neon";
  * 5. Creating initial version 0
  * 6. Saving secrets and setting current dev version
  *
- * @param projectId - The ID of the project to initialize
- * @throws If the project is not found or initialization fails
+ * @param project - The project object to initialize
+ * @throws If initialization fails
  */
 export async function initFirstVersionAfterProjectCreation(
-  projectId: string,
+  project: typeof projectsTable.$inferSelect,
 ): Promise<void> {
-  console.log("[Projects] Initializing first version for project:", projectId);
-
-  // Fetch the project
-  const [project] = await db
-    .select()
-    .from(projectsTable)
-    .where(eq(projectsTable.id, projectId))
-    .limit(1);
-
-  if (!project) {
-    throw new Error(`Project not found: ${projectId}`);
-  }
-
+  console.log("[Projects] Initializing first version for project:", project.id);
   console.log("[Projects] Project found:", {
     repoId: project.repoId,
     neonProjectId: project.neonProjectId,
   });
 
-  // Retrieve Neon Auth credentials
-  console.log("[Projects] Retrieving Neon Auth credentials...");
-  const neonAuth = await neonService.getNeonAuthKeys(project.neonProjectId);
-  console.log("[Projects] Neon Auth credentials retrieved");
-
-  // Get connection URI for the database
-  console.log("[Projects] Getting connection URI...");
-  const databaseUrl = await neonService.getConnectionUri({
-    projectId: project.neonProjectId,
-  });
-  console.log("[Projects] Database URL retrieved");
+  // Retrieve Neon Auth credentials and connection URI in parallel
+  console.log(
+    "[Projects] Retrieving Neon Auth credentials and connection URI in parallel...",
+  );
+  const [neonAuth, databaseUrl] = await Promise.all([
+    neonService.getNeonAuthKeys(project.neonProjectId),
+    neonService.getConnectionUri({
+      projectId: project.neonProjectId,
+    }),
+  ]);
+  console.log("[Projects] Neon Auth credentials and database URL retrieved");
 
   // Create initial secrets with Neon Auth environment variables
   console.log("[Projects] Creating initial secrets object...");
@@ -68,21 +56,21 @@ export async function initFirstVersionAfterProjectCreation(
   console.log(
     "[Projects] Requesting dev server and creating initial snapshot in parallel...",
   );
-  const [devServerResponse, initialSnapshotId] = await Promise.all([
-    freestyleService.requestDevServer({
-      repoId: project.repoId,
-      environmentVariables: initialSecrets,
-    }),
+  const [initialCommitHash, initialSnapshotId] = await Promise.all([
+    freestyleService
+      .requestDevServer({
+        repoId: project.repoId,
+        environmentVariables: initialSecrets,
+      })
+      .then((devServerResponse) => getLatestCommit(devServerResponse.process)),
     neonService.createSnapshot(project.neonProjectId, {
       name: "initial",
     }),
   ]);
-  console.log("[Projects] Dev server ready and initial snapshot created");
-
-  // Get the initial commit hash from the repository
-  console.log("[Projects] Getting initial commit hash...");
-  const initialCommitHash = await getLatestCommit(devServerResponse.process);
-  console.log("[Projects] Initial commit hash:", initialCommitHash);
+  console.log(
+    "[Projects] Dev server ready, initial snapshot created, and initial commit hash retrieved:",
+    initialCommitHash,
+  );
 
   // Create initial version 0 with the actual commit hash
   console.log("[Projects] Creating initial version 0...");

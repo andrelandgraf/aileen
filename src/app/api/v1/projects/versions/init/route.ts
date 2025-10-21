@@ -43,7 +43,7 @@ export async function POST(request: Request) {
 
     // Initialize the first version asynchronously
     console.log("[API] Initializing first version for project:", projectId);
-    await initFirstVersionAfterProjectCreation(projectId);
+    await initFirstVersionAfterProjectCreation(project);
     console.log("[API] First version initialization complete");
 
     return NextResponse.json({ success: true }, { status: 200 });
