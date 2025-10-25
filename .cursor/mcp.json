@@ -1,5 +1,9 @@
 {
   "mcpServers": {
+    "next-devtools": {
+      "command": "npx",
+      "args": ["-y", "next-devtools-mcp@latest"]
+    },
     "mastra-docs": {
       "type": "stdio",
       "command": "npx",
