@@ -6,7 +6,8 @@ import { freestyleService } from "@/lib/freestyle";
 import { createAssistantThread } from "@/lib/assistant-ui";
 import { neonService } from "@/lib/neon";
 import { revalidatePath } from "next/cache";
-import { inngest } from "@/lib/inngest/client";
+import { start } from "workflow/api";
+import { initalizeFirstProjectVersion } from "@/lib/workflows";
 
 export async function POST(request: Request) {
   try {
@@ -71,16 +72,12 @@ export async function POST(request: Request) {
 
     console.log("[API] Project created successfully:", project);
 
-    console.log("[API] Triggering Inngest event for project initialization...");
-    await inngest.send({
-      name: "projects/initialize-first-version",
-      data: {
-        projectId: project.id,
-        repoId: project.repoId,
-        neonProjectId: project.neonProjectId,
-      },
-    });
-    console.log("[API] Inngest event triggered successfully");
+    console.log("[API] Triggering Workflow for project initialization...");
+    await start(initalizeFirstProjectVersion, [
+      project.id,
+      project.repoId,
+      project.neonProjectId,
+    ]);
 
     revalidatePath("/projects");
 

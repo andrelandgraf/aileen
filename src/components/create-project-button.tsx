@@ -41,7 +41,6 @@ export function CreateProjectButton() {
 
       const project = await response.json();
 
-      // First version initialization is now triggered automatically via Inngest
       setOpen(false);
       setName("");
       router.push(`/projects/${project.id}`);

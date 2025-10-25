@@ -10,7 +10,6 @@ An AI-powered development platform that helps developers build and deploy full-s
 - **Stack Auth** - Authentication for platform users
 - **Assistant UI** - AI chat interface and conversation persistence
 - **Mastra** - AI agents and workflow orchestration
-- **Inngest** - Background job processing and workflow automation
 
 ### Provisioned Per-App (for each project created)
 
@@ -23,7 +22,7 @@ An AI-powered development platform that helps developers build and deploy full-s
 - Creates projects with automated database, auth, and dev server setup
 - Manages project versions with database snapshots and git commits
 - Provides AI chat interface for development guidance
-- Orchestrates complex initialization workflows with Inngest
+- Orchestrates complex initialization workflows with Vercel Workflows
 - Tracks and manages environment secrets per project version
 
 ## Getting Started

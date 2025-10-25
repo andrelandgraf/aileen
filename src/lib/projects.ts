@@ -8,10 +8,8 @@ import { eq } from "drizzle-orm";
 import { freestyleService, getLatestCommit } from "@/lib/freestyle";
 import { neonService } from "@/lib/neon";
 
-/**
- * Atomic step: Get production branch from Neon
- */
 export async function getProductionBranch(neonProjectId: string) {
+  "use step";
   console.log("[Projects] Getting production branch for Neon Auth...");
   const prodBranch = await neonService.getProductionBranch(neonProjectId);
   if (!prodBranch?.id) {
@@ -21,10 +19,8 @@ export async function getProductionBranch(neonProjectId: string) {
   return prodBranch;
 }
 
-/**
- * Atomic step: Initialize Neon Auth
- */
 export async function initNeonAuth(neonProjectId: string, branchId: string) {
+  "use step";
   console.log("[Projects] Initializing Neon Auth...");
   const neonAuth = await neonService.initNeonAuth(neonProjectId, branchId);
   console.log("[Projects] Neon Auth initialized:", {
@@ -33,10 +29,8 @@ export async function initNeonAuth(neonProjectId: string, branchId: string) {
   return neonAuth;
 }
 
-/**
- * Atomic step: Get database connection URI from Neon
- */
 export async function getDatabaseConnectionUri(neonProjectId: string) {
+  "use step";
   console.log("[Projects] Getting database connection URI...");
   const databaseUrl = await neonService.getConnectionUri({
     projectId: neonProjectId,
@@ -45,13 +39,11 @@ export async function getDatabaseConnectionUri(neonProjectId: string) {
   return databaseUrl;
 }
 
-/**
- * Atomic step: Request dev server and get initial commit hash
- */
 export async function requestDevServer(
   repoId: string,
   secrets: Record<string, string>,
 ) {
+  "use step";
   console.log("[Projects] Requesting dev server...");
   const devServerResponse = await freestyleService.requestDevServer({
     repoId,
@@ -62,10 +54,8 @@ export async function requestDevServer(
   return initialCommitHash;
 }
 
-/**
- * Atomic step: Create initial Neon snapshot
- */
 export async function createInitialSnapshot(neonProjectId: string) {
+  "use step";
   console.log("[Projects] Creating initial snapshot...");
   const snapshotId = await neonService.createSnapshot(neonProjectId, {
     name: "initial",
@@ -74,14 +64,12 @@ export async function createInitialSnapshot(neonProjectId: string) {
   return snapshotId;
 }
 
-/**
- * Atomic step: Create initial project version record
- */
 export async function createInitialVersion(
   projectId: string,
   gitCommitHash: string,
   neonSnapshotId: string,
 ) {
+  "use step";
   console.log("[Projects] Creating initial version 0...");
   const [initialVersion] = await db
     .insert(projectVersionsTable)
@@ -97,13 +85,11 @@ export async function createInitialVersion(
   return initialVersion;
 }
 
-/**
- * Atomic step: Save project secrets
- */
 export async function saveProjectSecrets(
   versionId: string,
   secrets: Record<string, string>,
 ) {
+  "use step";
   console.log("[Projects] Saving project secrets...");
   await db.insert(projectSecretsTable).values({
     projectVersionId: versionId,
@@ -112,13 +98,11 @@ export async function saveProjectSecrets(
   console.log("[Projects] Project secrets saved");
 }
 
-/**
- * Atomic step: Set current dev version
- */
 export async function setCurrentDevVersion(
   projectId: string,
   versionId: string,
 ) {
+  "use step";
   console.log("[Projects] Setting current dev version...");
   await db
     .update(projectsTable)
@@ -127,9 +111,6 @@ export async function setCurrentDevVersion(
   console.log("[Projects] Current dev version set");
 }
 
-/**
- * Helper: Build secrets object from Neon Auth response
- */
 export function buildSecretsFromNeonAuth(
   neonAuth: Awaited<ReturnType<typeof neonService.initNeonAuth>>,
   databaseUrl: string,
