@@ -24,6 +24,8 @@
     "@hookform/resolvers": "^5.2.2",
     "@mastra/ai-sdk": "^0.2.4",
     "@mastra/core": "^0.23.1",
+    "@mastra/libsql": "^0.16.1",
+    "@mastra/loggers": "^0.10.18",
     "@mastra/mcp": "^0.14.1",
     "@neondatabase/serverless": "^1.0.2",
     "@radix-ui/react-accordion": "^1.2.12",
