@@ -13,7 +13,8 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
-    "mcp:debug": "bunx @modelcontextprotocol/inspector"
+    "mcp:debug": "bunx @modelcontextprotocol/inspector",
+    "workflow:dev": "bunx workflow inspect runs --web"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^2.0.31",

@@ -1,47 +1,42 @@
 import {
-  getProductionBranch,
+  getNeonProductionBranch,
   initNeonAuth,
   getDatabaseConnectionUri,
-  requestDevServer,
-  createInitialSnapshot,
+  getLatestCommitHash,
   createInitialVersion,
   saveProjectSecrets,
   setCurrentDevVersion,
   buildSecretsFromNeonAuth,
-  getCurrentCommitHash,
-  createCheckpointSnapshot,
+  createNeonSnapshot,
   createCheckpointVersion,
   copyProjectSecrets,
-} from "@/lib/projects";
+  warmUpDevServer,
+} from "@/lib/steps";
+import { Project } from "@/lib/db/schema";
 
-export async function initalizeFirstProjectVersion(
-  projectId: string,
-  repoId: string,
-  neonProjectId: string,
-) {
+export async function initalizeFirstProjectVersion(project: Project) {
   "use workflow";
-  const prodBranch = await getProductionBranch(neonProjectId);
+  const prodBranch = await getNeonProductionBranch(project.neonProjectId);
 
-  const [neonAuth, databaseUrl] = await Promise.all([
-    initNeonAuth(neonProjectId, prodBranch.id),
-    getDatabaseConnectionUri(neonProjectId),
-  ]);
-
-  const secrets = buildSecretsFromNeonAuth(neonAuth, databaseUrl);
-  const [initialCommitHash, initialSnapshotId] = await Promise.all([
-    requestDevServer(repoId, secrets),
-    createInitialSnapshot(neonProjectId),
-  ]);
+  const [neonAuth, databaseUrl, initialCommitHash, initialSnapshotId] =
+    await Promise.all([
+      initNeonAuth(project.neonProjectId, prodBranch.id),
+      getDatabaseConnectionUri(project.neonProjectId),
+      getLatestCommitHash(project.repoId),
+      createNeonSnapshot(project.neonProjectId),
+    ]);
 
   const initialVersion = await createInitialVersion(
-    projectId,
+    project.id,
     initialCommitHash,
     initialSnapshotId,
   );
 
+  const secrets = buildSecretsFromNeonAuth(neonAuth, databaseUrl);
   await Promise.all([
     saveProjectSecrets(initialVersion.id, secrets),
-    setCurrentDevVersion(projectId, initialVersion.id),
+    setCurrentDevVersion(project.id, initialVersion.id),
+    warmUpDevServer(project, secrets), // Warm up Freestyle Dev Server in parallel
   ]);
 
   return { success: true, versionId: initialVersion.id };
@@ -52,13 +47,12 @@ export async function createManualCheckpoint(
   repoId: string,
   neonProjectId: string,
   currentDevVersionId: string,
-  secrets: Record<string, string>,
   assistantMessageId: string | null,
 ) {
   "use workflow";
   const [currentCommitHash, snapshotId] = await Promise.all([
-    getCurrentCommitHash(repoId, secrets),
-    createCheckpointSnapshot(neonProjectId),
+    getLatestCommitHash(repoId),
+    createNeonSnapshot(neonProjectId),
   ]);
 
   const checkpointVersion = await createCheckpointVersion(

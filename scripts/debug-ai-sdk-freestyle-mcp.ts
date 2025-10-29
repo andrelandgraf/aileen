@@ -2,7 +2,7 @@
 
 import { anthropic } from "@ai-sdk/anthropic";
 import { stepCountIs, streamText } from "ai";
-import { experimental_createMCPClient } from "@ai-sdk/mcp"
+import { experimental_createMCPClient } from "@ai-sdk/mcp";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 
 async function main() {

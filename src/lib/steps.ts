@@ -3,12 +3,14 @@ import {
   projectsTable,
   projectVersionsTable,
   projectSecretsTable,
+  Project,
 } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { freestyleService, getLatestCommit } from "@/lib/freestyle";
+import { getLatestCommit } from "@/lib/freestyle";
 import { neonService } from "@/lib/neon";
+import { requestDevServer } from "@/lib/dev-server";
 
-export async function getProductionBranch(neonProjectId: string) {
+export async function getNeonProductionBranch(neonProjectId: string) {
   "use step";
   console.log("[Projects] Getting production branch for Neon Auth...");
   const prodBranch = await neonService.getProductionBranch(neonProjectId);
@@ -39,29 +41,22 @@ export async function getDatabaseConnectionUri(neonProjectId: string) {
   return databaseUrl;
 }
 
-export async function requestDevServer(
-  repoId: string,
+export async function getLatestCommitHash(repoId: string) {
+  "use step";
+  console.log("[Projects] Getting latest commit hash...");
+  const commitHash = await getLatestCommit(repoId);
+  console.log("[Projects] Latest commit hash:", commitHash);
+  return commitHash;
+}
+
+export async function warmUpDevServer(
+  project: Project,
   secrets: Record<string, string>,
 ) {
   "use step";
-  console.log("[Projects] Requesting dev server...");
-  const devServerResponse = await freestyleService.requestDevServer({
-    repoId,
-    environmentVariables: secrets,
-  });
-  const initialCommitHash = await getLatestCommit(devServerResponse.process);
-  console.log("[Projects] Dev server ready, commit hash:", initialCommitHash);
-  return initialCommitHash;
-}
-
-export async function createInitialSnapshot(neonProjectId: string) {
-  "use step";
-  console.log("[Projects] Creating initial snapshot...");
-  const snapshotId = await neonService.createSnapshot(neonProjectId, {
-    name: "initial",
-  });
-  console.log("[Projects] Initial snapshot created:", snapshotId);
-  return snapshotId;
+  console.log("[Projects] Warming up dev server...");
+  requestDevServer(project, secrets); // Warm up Freestyle Dev Server but don't wait for it
+  console.log("[Projects] Dev server warmed up");
 }
 
 export async function createInitialVersion(
@@ -123,24 +118,9 @@ export function buildSecretsFromNeonAuth(
   };
 }
 
-export async function getCurrentCommitHash(
-  repoId: string,
-  secrets: Record<string, string>,
-) {
+export async function createNeonSnapshot(neonProjectId: string) {
   "use step";
-  console.log("[Projects] Getting current commit hash...");
-  const devServerResponse = await freestyleService.requestDevServer({
-    repoId,
-    environmentVariables: secrets,
-  });
-  const currentCommitHash = await getLatestCommit(devServerResponse.process);
-  console.log("[Projects] Current commit hash:", currentCommitHash);
-  return currentCommitHash;
-}
-
-export async function createCheckpointSnapshot(neonProjectId: string) {
-  "use step";
-  console.log("[Projects] Creating checkpoint snapshot...");
+  console.log("[Projects] Creating Neon snapshot...");
   const snapshotId = await neonService.createSnapshot(neonProjectId, {
     name: `checkpoint-${Date.now()}`,
   });

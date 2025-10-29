@@ -73,11 +73,7 @@ export async function POST(request: Request) {
     console.log("[API] Project created successfully:", project);
 
     console.log("[API] Triggering Workflow for project initialization...");
-    await start(initalizeFirstProjectVersion, [
-      project.id,
-      project.repoId,
-      project.neonProjectId,
-    ]);
+    await start(initalizeFirstProjectVersion, [project]);
 
     revalidatePath("/projects");
 

@@ -15,10 +15,47 @@ interface RequestDevServerParams {
   environmentVariables: Record<string, string>;
 }
 
+interface CommitResponse {
+  commits: Array<{
+    sha: string;
+    message: string;
+    author: {
+      date: string;
+      name: string;
+      email: string;
+    };
+    committer: {
+      date: string;
+      name: string;
+      email: string;
+    };
+    tree: {
+      sha: string;
+    };
+    parents: Array<{
+      sha: string;
+    }>;
+  }>;
+  count: number;
+  offset: number;
+  limit: number;
+  total: number;
+}
+
+interface GetCommitsParams {
+  repoId: string;
+  branch?: string;
+  limit?: number;
+  offset?: number;
+}
+
 export class FreestyleService {
   private freestyle: FreestyleSandboxes;
+  private apiKey: string;
+  private readonly apiBaseUrl = "https://api.freestyle.sh";
 
   constructor(apiKey: string) {
+    this.apiKey = apiKey;
     this.freestyle = new FreestyleSandboxes({
       apiKey,
     });
@@ -69,6 +106,67 @@ export class FreestyleService {
         repoId,
       });
     } catch (_) {}
+  }
+
+  /**
+   * Fetches commits from a Freestyle repository using the Git API
+   * @param params - Parameters for fetching commits
+   * @returns Promise resolving to commit response with commits array
+   */
+  async getCommits({
+    repoId,
+    branch,
+    limit = 1,
+    offset = 0,
+  }: GetCommitsParams): Promise<CommitResponse> {
+    console.log("[Freestyle] Fetching commits for repo:", repoId, {
+      branch,
+      limit,
+      offset,
+    });
+
+    try {
+      const queryParams = new URLSearchParams();
+      if (branch) {
+        queryParams.append("branch", branch);
+      }
+      if (limit) {
+        queryParams.append("limit", limit.toString());
+      }
+      if (offset) {
+        queryParams.append("offset", offset.toString());
+      }
+
+      const url = `${this.apiBaseUrl}/git/v1/repo/${repoId}/git/commits?${queryParams.toString()}`;
+
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${this.apiKey}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(
+          `Failed to fetch commits: ${response.status} ${response.statusText} - ${errorText}`,
+        );
+      }
+
+      const data = (await response.json()) as CommitResponse;
+      console.log("[Freestyle] Successfully fetched commits:", {
+        count: data.count,
+        total: data.total,
+      });
+
+      return data;
+    } catch (error) {
+      console.error("[Freestyle] Error fetching commits:", error);
+      throw new Error(
+        `Failed to fetch commits: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
   }
 
   async requestDevServer({
@@ -142,24 +240,33 @@ export const freestyleService = new FreestyleService(
 );
 
 /**
- * Gets the latest commit hash from a Freestyle repository
- * @param process - The process object from FreestyleDevServer
+ * Gets the latest commit hash from a Freestyle repository using the Git API
+ * @param repoId - The repository ID
+ * @param branch - Optional branch name (defaults to HEAD/default branch)
+ * @returns Promise resolving to the latest commit hash (SHA)
  */
 export async function getLatestCommit(
-  process: FreestyleDevServer["process"],
+  repoId: string,
+  branch?: string,
 ): Promise<string> {
-  console.log("[Freestyle] Getting latest commit hash");
+  console.log("[Freestyle] Getting latest commit hash via API", {
+    repoId,
+    branch,
+  });
 
   try {
-    const result = await process.exec("git rev-parse HEAD");
+    const response = await freestyleService.getCommits({
+      repoId,
+      branch,
+      limit: 1,
+      offset: 0,
+    });
 
-    if (result.stderr && result.stderr.length > 0) {
-      console.warn(
-        `[Freestyle] git rev-parse stderr: ${result.stderr.join("\n")}`,
-      );
+    if (!response.commits || response.commits.length === 0) {
+      throw new Error("No commits found in repository");
     }
 
-    const commitHash = result.stdout?.join("\n").trim() || "";
+    const commitHash = response.commits[0].sha;
     console.log("[Freestyle] Latest commit hash:", commitHash);
 
     return commitHash;

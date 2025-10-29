@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { stackServerApp } from "@/lib/stack/server";
 import { db } from "@/lib/db/db";
-import { projectsTable, projectSecretsTable } from "@/lib/db/schema";
+import { projectsTable } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { start } from "workflow/api";
 import { createManualCheckpoint } from "@/lib/workflows";
@@ -54,23 +54,6 @@ export async function POST(req: Request, { params }: RouteParams) {
       project.currentDevVersionId,
     );
 
-    // Fetch secrets for the current dev version
-    console.log("[POST Checkpoint] Fetching secrets for current version...");
-    const [currentSecrets] = await db
-      .select()
-      .from(projectSecretsTable)
-      .where(
-        eq(projectSecretsTable.projectVersionId, project.currentDevVersionId),
-      )
-      .limit(1);
-
-    if (!currentSecrets) {
-      return NextResponse.json(
-        { error: "No secrets found for current version" },
-        { status: 404 },
-      );
-    }
-
     console.log("[POST Checkpoint] Triggering checkpoint workflow...");
 
     await start(createManualCheckpoint, [
@@ -78,7 +61,6 @@ export async function POST(req: Request, { params }: RouteParams) {
       project.repoId,
       project.neonProjectId,
       project.currentDevVersionId,
-      currentSecrets.secrets,
       assistantMessageId || null,
     ]);
 
