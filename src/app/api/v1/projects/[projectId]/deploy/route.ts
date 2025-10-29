@@ -106,7 +106,9 @@ export async function POST(req: Request, { params }: RouteParams) {
         {
           domains: [customDomain],
           envVars: currentDevSecrets.secrets,
-          build: true,
+          build: {
+            envVars: currentDevSecrets.secrets,
+          },
         },
       )
       .then(() => {

@@ -510,12 +510,9 @@ export class NeonService {
     console.log("[Neon] Creating snapshot for project:", neonProjectId);
     const prodBranch = await this.getProductionBranch(neonProjectId);
     invariant(prodBranch?.id, "Production branch not found");
-    const branchId = prodBranch.id;
-
-    const timestamp = options.timestamp ?? new Date().toISOString();
 
     const res = await fetch(
-      `${this.baseUrl}/projects/${neonProjectId}/branches/${branchId}/snapshot`,
+      `${this.baseUrl}/projects/${neonProjectId}/branches/${prodBranch.id}/snapshot`,
       {
         method: "POST",
         headers: {
@@ -524,10 +521,9 @@ export class NeonService {
           Accept: "application/json",
         },
         body: JSON.stringify({
-          timestamp,
+          timestamp: options.timestamp ?? new Date().toISOString(),
           name: options.name,
         }),
-        cache: "no-store",
       },
     );
 
@@ -566,13 +562,11 @@ export class NeonService {
           Authorization: `Bearer ${this.apiKey}`,
           Accept: "application/json",
         },
-        // One-step restore with finalize to move computes so connection remains intact
         body: JSON.stringify({
-          name: `restored_${Date.now()}`,
+          name: `before_restore_${Date.now()}`,
           finalize_restore: true,
           target_branch_id: targetBranchId,
         }),
-        cache: "no-store",
       },
     );
 
