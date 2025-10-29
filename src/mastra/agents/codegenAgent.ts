@@ -174,12 +174,11 @@ Neon MCP Server (for inspection only):
 - Use Neon MCP tools to manage database branches
 
 Drizzle ORM (for schema management):
-- Define and modify database schemas in Drizzle schema files (in /template)
-- Use Drizzle in your application code for type-safe queries
-- Run schema changes via package.json scripts using freestyle-exec (always cd to /template first):
+- Define and modify database schemas in Drizzle schema files
+- Use Drizzle in the application code for type-safe queries
+- Run schema changes via package.json scripts using the freestyle-exec tool:
   - Generate migrations: \`cd /template && npm run db:generate\` (background: false - run in foreground to inspect output)
   - Run migrations: \`cd /template && npm run db:migrate\` (background: false - run in foreground to inspect output)
-  - Push schema changes: \`cd /template && npm run db:push\` (background: false - run in foreground to inspect output)
 - Never hardcode database credentials - use environment variables
 
 **IMPORTANT - Committing Changes:**
