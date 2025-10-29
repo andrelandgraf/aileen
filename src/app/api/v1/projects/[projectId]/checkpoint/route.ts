@@ -3,6 +3,7 @@ import { stackServerApp } from "@/lib/stack/server";
 import { db } from "@/lib/db/db";
 import { projectsTable, projectSecretsTable } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
+import { start } from "workflow/api";
 import { createManualCheckpoint } from "@/lib/workflows";
 
 interface RouteParams {
@@ -72,16 +73,14 @@ export async function POST(req: Request, { params }: RouteParams) {
 
     console.log("[POST Checkpoint] Triggering checkpoint workflow...");
 
-    await createManualCheckpoint(
+    await start(createManualCheckpoint, [
       projectId,
       project.repoId,
       project.neonProjectId,
       project.currentDevVersionId,
       currentSecrets.secrets,
       assistantMessageId || null,
-    ).catch((error) => {
-      console.error("[POST Checkpoint] Workflow error:", error);
-    });
+    ]);
 
     console.log("[POST Checkpoint] Checkpoint workflow triggered");
 
