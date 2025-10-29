@@ -13,7 +13,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
-    "mcp:debug": "npx @modelcontextprotocol/inspector"
+    "mcp:debug": "bunx @modelcontextprotocol/inspector"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^2.0.31",
@@ -55,6 +55,7 @@
     "@radix-ui/react-toggle-group": "^1.1.11",
     "@radix-ui/react-tooltip": "^1.2.8",
     "@stackframe/stack": "^2.8.41",
+    "@types/bun": "^1.3.1",
     "ai": "^5.0.75",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -86,7 +87,6 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
-    "@types/node": "^20.19.19",
     "@types/react": "19.2.2",
     "@types/react-dom": "19.2.2",
     "babel-plugin-react-compiler": "^1.0.0",
