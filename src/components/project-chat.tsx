@@ -129,6 +129,7 @@ const ProjectChatContent = ({
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm">
+                  <span className="mr-2">Project Options</span>
                   <MoreVertical className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>

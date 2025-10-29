@@ -9,7 +9,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { History, Loader2, Bookmark } from "lucide-react";
+import { History, Loader2 } from "lucide-react";
 import { useProjectData } from "@/components/project-context";
 import { useThreadRuntime } from "@assistant-ui/react";
 
@@ -219,9 +219,12 @@ export function VersionsDropdown({
         title="Create a manual checkpoint of the current state"
       >
         {isCreatingCheckpoint ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
+          <>
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            <span>Creating...</span>
+          </>
         ) : (
-          <Bookmark className="h-4 w-4" />
+          <span>Create checkpoint</span>
         )}
       </Button>
     </div>
