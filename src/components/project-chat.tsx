@@ -16,7 +16,22 @@ import {
 import { useDevServerData } from "@/components/dev-server-context";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ExternalLink, Rocket, Code2, ArrowLeft } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  ExternalLink,
+  Rocket,
+  Code2,
+  ArrowLeft,
+  MoreVertical,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { FreestyleDevServer } from "freestyle-sandboxes/react/dev-server";
 import { requestDevServer } from "@/actions/preview-actions";
@@ -111,42 +126,55 @@ const ProjectChatContent = ({
             <VersionsDropdown projectId={projectId} accessToken={accessToken} />
           </div>
           <div className="flex items-center gap-2">
-            {codeServerUrl && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => window.open(codeServerUrl, "_blank")}
-              >
-                <Code2 className="h-4 w-4 mr-2" />
-                View Code
-              </Button>
-            )}
-            {devServerUrl && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => window.open(devServerUrl, "_blank")}
-              >
-                <ExternalLink className="h-4 w-4 mr-2" />
-                Open Dev Preview
-              </Button>
-            )}
-            {isVersionReady && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => window.open(deploymentUrl, "_blank")}
-              >
-                <ExternalLink className="h-4 w-4 mr-2" />
-                View Live Site
-              </Button>
-            )}
-            {isVersionReady && (
-              <Button size="sm" onClick={handleDeploy} disabled={isDeploying}>
-                <Rocket className="h-4 w-4 mr-2" />
-                {isDeploying ? "Deploying..." : "Deploy"}
-              </Button>
-            )}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>Development</DropdownMenuLabel>
+                <DropdownMenuGroup>
+                  {devServerUrl && (
+                    <DropdownMenuItem
+                      onClick={() => window.open(devServerUrl, "_blank")}
+                    >
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      <span>Open Dev Preview</span>
+                    </DropdownMenuItem>
+                  )}
+                  {codeServerUrl && (
+                    <DropdownMenuItem
+                      onClick={() => window.open(codeServerUrl, "_blank")}
+                    >
+                      <Code2 className="h-4 w-4 mr-2" />
+                      <span>View in VS Code</span>
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel>Production</DropdownMenuLabel>
+                <DropdownMenuGroup>
+                  {isVersionReady && (
+                    <DropdownMenuItem
+                      onClick={handleDeploy}
+                      disabled={isDeploying}
+                    >
+                      <Rocket className="h-4 w-4 mr-2" />
+                      <span>{isDeploying ? "Deploying..." : "Deploy"}</span>
+                    </DropdownMenuItem>
+                  )}
+                  {isVersionReady && (
+                    <DropdownMenuItem
+                      onClick={() => window.open(deploymentUrl, "_blank")}
+                    >
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      <span>View Live Site</span>
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <ProfileButton />
           </div>
         </header>

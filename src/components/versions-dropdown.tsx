@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Select,
   SelectContent,
@@ -8,8 +8,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { History, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { History, Loader2, Bookmark } from "lucide-react";
 import { useProjectData } from "@/components/project-context";
+import { useThreadRuntime } from "@assistant-ui/react";
 
 interface VersionsDropdownProps {
   projectId: string;
@@ -22,6 +24,10 @@ export function VersionsDropdown({
 }: VersionsDropdownProps) {
   const { versions, currentVersionId, refreshVersions } = useProjectData();
   const [isRestoring, setIsRestoring] = useState(false);
+  const [isCreatingCheckpoint, setIsCreatingCheckpoint] = useState(false);
+  const [latestVersionIdBeforeCheckpoint, setLatestVersionIdBeforeCheckpoint] =
+    useState<string | null>(null);
+  const threadRuntime = useThreadRuntime();
 
   const handleVersionChange = async (versionId: string) => {
     if (versionId === currentVersionId) return;
@@ -58,6 +64,75 @@ export function VersionsDropdown({
       setIsRestoring(false);
     }
   };
+
+  const handleCreateCheckpoint = async () => {
+    try {
+      // Remember the current latest version before creating checkpoint
+      const currentLatestVersion = versions[0];
+      if (currentLatestVersion) {
+        setLatestVersionIdBeforeCheckpoint(currentLatestVersion.id);
+      }
+      setIsCreatingCheckpoint(true);
+      console.log("[Versions] Creating checkpoint...");
+
+      // Get the latest assistant message ID from the thread
+      const messages = threadRuntime.getState().messages;
+      const latestAssistantMessage = messages
+        .slice()
+        .reverse()
+        .find((msg) => msg.role === "assistant");
+
+      console.log(
+        "[Versions] Latest assistant message ID:",
+        latestAssistantMessage?.id,
+      );
+
+      const response = await fetch(`/api/v1/projects/${projectId}/checkpoint`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          assistantMessageId: latestAssistantMessage?.id || null,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.details || "Failed to start checkpoint creation");
+      }
+
+      console.log("[Versions] Checkpoint creation started in background");
+      // Note: Don't call setIsCreatingCheckpoint(false) here
+      // We'll wait for the new version to appear through polling
+    } catch (error) {
+      console.error("[Versions] Error creating checkpoint:", error);
+      alert(
+        `Failed to create checkpoint: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      setIsCreatingCheckpoint(false);
+      setLatestVersionIdBeforeCheckpoint(null);
+    }
+  };
+
+  // Effect to detect when a new version appears after checkpoint creation
+  useEffect(() => {
+    const latestVersion = versions[0];
+    if (
+      isCreatingCheckpoint &&
+      latestVersionIdBeforeCheckpoint &&
+      latestVersion &&
+      latestVersion.id !== latestVersionIdBeforeCheckpoint
+    ) {
+      console.log(
+        "[Versions] New checkpoint version detected:",
+        latestVersion.id,
+      );
+      setIsCreatingCheckpoint(false);
+      setLatestVersionIdBeforeCheckpoint(null);
+    }
+  }, [versions, isCreatingCheckpoint, latestVersionIdBeforeCheckpoint]);
 
   // Show "Initializing first version" if no current version exists yet
   if (currentVersionId === null) {
@@ -96,7 +171,7 @@ export function VersionsDropdown({
       <Select
         value={currentVersionId}
         onValueChange={handleVersionChange}
-        disabled={isRestoring}
+        disabled={isRestoring || isCreatingCheckpoint}
       >
         <SelectTrigger className="w-[180px]">
           {isRestoring ? (
@@ -120,8 +195,11 @@ export function VersionsDropdown({
         <SelectContent>
           {versions.map((version, index) => (
             <SelectItem key={version.id} value={version.id}>
-              <div className="flex flex-col gap-1">
-                <span className="font-medium text-sm">
+              <div className="flex flex-col gap-1 max-w-[300px]">
+                <span
+                  className="font-medium text-sm truncate"
+                  title={`${index === 0 ? "Latest: " : ""}${version.summary}`}
+                >
                   {index === 0 ? "Latest: " : ""}
                   {version.summary}
                 </span>
@@ -133,6 +211,19 @@ export function VersionsDropdown({
           ))}
         </SelectContent>
       </Select>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={handleCreateCheckpoint}
+        disabled={isRestoring || isCreatingCheckpoint}
+        title="Create a manual checkpoint of the current state"
+      >
+        {isCreatingCheckpoint ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <Bookmark className="h-4 w-4" />
+        )}
+      </Button>
     </div>
   );
 }
