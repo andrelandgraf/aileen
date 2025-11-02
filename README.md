@@ -42,9 +42,9 @@ Before starting, you must create accounts with the following services and obtain
 
 - **Assistant UI Cloud** - Required for the chat interface and conversation management
 - **Neon** (with Neon Auth) - Required for database provisioning and platform authentication
-- **Neon API Key** - Required for programmatic database management (organization-wide API key for creating and managing projects)
-- **Anthropic** - Required for inference (Claude Haiku 4.5)
-- **OpenAI** - Optional, backup model
+    - `DATABASE_URL` connection string and Neon Auth StackAuth credentials
+    - **Neon API Key** - Required for programmatic database management (organization-wide API key for creating and managing projects)
+- **Anthropic** - Claude API key required for Haiku 4.5 which is used by default - model can be changed in `src/mastra/agents/codegenAgent.ts`.
 
 You can change the model provider by changing the `@ai-sdk` configuration in `src/mastra/agents/codegenAgent.ts`.
 

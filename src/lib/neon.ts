@@ -334,7 +334,6 @@ export class NeonService {
     }
 
     const json = (await res.json()) as ListAuthDomainsResponse;
-    console.log("[Neon] Auth domains:", json.domains);
 
     return json.domains;
   }
@@ -359,10 +358,7 @@ export class NeonService {
       );
 
       if (domainExists) {
-        console.log(
-          "[Neon] Auth domain already exists, skipping add:",
-          domain,
-        );
+        console.log("[Neon] Auth domain already exists, skipping add:", domain);
         return;
       }
     } catch (error) {

@@ -1,5 +1,4 @@
 import { anthropic } from "@ai-sdk/anthropic";
-import { openai } from "@ai-sdk/openai";
 import { Agent } from "@mastra/core/agent";
 import { RuntimeContext } from "@mastra/core/runtime-context";
 import type { CodegenRuntimeContext, UserContext } from "../lib/context";
@@ -209,10 +208,6 @@ This is CRITICAL - always commit changes as your final step after each task comp
   model: [
     {
       model: anthropic("claude-haiku-4-5"),
-      maxRetries: 1,
-    },
-    {
-      model: openai("gpt-5"),
       maxRetries: 1,
     },
   ],

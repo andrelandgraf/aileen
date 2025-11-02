@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "fmt": "prettier --write .",
+    "typecheck": "tsc --noEmit",
     "mastra:dev": "mastra dev",
     "mastra:build": "mastra build",
     "mastra:context": "bun scripts/get-project-context.ts",
@@ -19,7 +20,6 @@
   "dependencies": {
     "@ai-sdk/anthropic": "^2.0.31",
     "@ai-sdk/mcp": "^0.0.4",
-    "@ai-sdk/openai": "^2.0.52",
     "@assistant-ui/react": "^0.11.32",
     "@assistant-ui/react-ai-sdk": "^1.1.7",
     "@assistant-ui/react-markdown": "^0.11.2",
