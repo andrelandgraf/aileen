@@ -351,6 +351,28 @@ export class NeonService {
       domain,
     );
 
+    // Check if domain already exists to prevent duplicates
+    try {
+      const existingDomains = await this.listAuthDomains(neonProjectId);
+      const domainExists = existingDomains.some(
+        (d) => d.domain === domain && d.auth_provider === authProvider,
+      );
+
+      if (domainExists) {
+        console.log(
+          "[Neon] Auth domain already exists, skipping add:",
+          domain,
+        );
+        return;
+      }
+    } catch (error) {
+      console.warn(
+        "[Neon] Failed to check existing domains, proceeding with add attempt",
+        error,
+      );
+      // Continue with add attempt even if we can't check existing domains
+    }
+
     const res = await fetch(
       `${this.baseUrl}/projects/${neonProjectId}/auth/domains`,
       {
