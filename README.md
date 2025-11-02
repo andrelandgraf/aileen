@@ -42,6 +42,7 @@ Before starting, you must create accounts with the following services and obtain
 
 - **Assistant UI Cloud** - Required for the chat interface and conversation management
 - **Neon** (with Neon Auth) - Required for database provisioning and platform authentication
+- **Neon API Key** - Required for programmatic database management (organization-wide API key for creating and managing projects)
 - **Anthropic** - Required for inference (Claude Haiku 4.5)
 - **OpenAI** - Optional, backup model
 
@@ -102,3 +103,12 @@ Deploy the Mastra agent to Mastra Cloud for production agent execution. Add all 
 Deploy the Next.js application to Vercel. Ensure all environment variables from your `.env` file are added to the Vercel project environment settings.
 
 For complete deployment instructions, refer to the official documentation for [Mastra Cloud](https://mastra.ai) and [Vercel](https://vercel.com/docs).
+
+## Aileen in Production
+
+In production, you likely want to have two separate Neon organizations:
+
+- **Company Organization** - Hosts the Aileen platform database (users, projects, versions, secrets)
+- **Multi-Tenant Agent Organization** - Hosts all agent-managed codegen application databases
+
+This separation provides better resource isolation, cost tracking, and management of the agent-created databases. For detailed information about scaling agent platforms on Neon, see [Neon for AI Agent Platforms](https://neon.com/agents).
