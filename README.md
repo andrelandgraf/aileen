@@ -8,6 +8,8 @@ Aileen is a vibe-coding/code-generation platform that builds Next.js application
 
 Each Aileen project is a standalone, version-controlled Next.js application with its own Neon database that is fully developed and managed by the Aileen agent.
 
+You can find a detailed blog post about Aileen [here](https://neon.com/blog/how-to-build-a-full-stack-ai-agent).
+
 ### Key Features
 
 - Creates projects with automated database, authentication, and development server setup

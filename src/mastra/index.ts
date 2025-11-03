@@ -1,7 +1,7 @@
 import { Mastra } from "@mastra/core";
-import { chatRoute } from "@mastra/ai-sdk";
 import { codegenAgent } from "./agents/codegenAgent";
 import { auth } from "./lib/middleware";
+import * as codegenRoute from "./routes/codegen";
 
 export const mastra = new Mastra({
   agents: { codegenAgent },
@@ -24,13 +24,11 @@ export const mastra = new Mastra({
       credentials: true,
     },
     apiRoutes: [
-      chatRoute({
+      {
         path: "/codegen",
-        agent: "codegenAgent",
-        defaultOptions: {
-          maxSteps: 50,
-        },
-      }),
+        method: "POST",
+        handler: codegenRoute.POST,
+      },
     ],
   },
 });
