@@ -16,20 +16,26 @@ Each Aileen project is a standalone, version-controlled Next.js application with
 - Orchestrates complex initialization workflows using Vercel Workflows
 - Tracks and manages environment secrets per project version
 
-### Platform Services
+### Platform Setup
+
+The platform is a Next.js app hosted on Vercel. The [Workflow Development Kit](https://useworkflow.dev/) is used for background tasks. Bun is used as the TypeScript runtime and package manager.
+
+The following services and infra providers are used to build the platform:
 
 - **Neon** - Serverless Postgres database for storing users, projects, project versions, and project secrets
 - **Neon Auth** - Platform user authentication powered by Stack Auth
 - **Assistant UI** - AI chat interface with conversation persistence
-- **Mastra** - AI agents and workflow orchestration
-- **Vercel** - Platform hosting provider (Next.js hosting and Workflow Development Kit for background tasks)
+- **Mastra** - AI agents framework & hosting
+- **Vercel** - Platform hosting provider (Next.js hosting & background tasks)
 
-### Per-Project Provisioned Services
+### Per-Project Setup
 
-Each created project includes the following:
+Each codegen project is initialized using an opinionated starter template w/ Next.js, Drizzle ORM, Neon Postgres, Neon Auth, and Shadcn/ui pre-configured. This helps the agent focus on feature development rather than infrastructure setup. You can find the starter template here: [github.com/andrelandgraf/neon-freestyle-template](https://github.com/andrelandgraf/neon-freestyle-template).
+
+Each created project includes the following provisioned resources/services:
 
 - **Neon Database** - Dedicated Postgres instance
-- **Neon Auth** - Authentication configured by default
+- **Neon Auth** - Authentication configured by default, dev server domain allowlisted through Neon Auth API
 - **Freestyle** - Development server (sandbox) and git repository
 
 ## Getting Started
@@ -38,15 +44,20 @@ Follow these steps to run Aileen locally:
 
 ### Prerequisites
 
-Before starting, you must create accounts with the following services and obtain the required API credentials:
+Before starting, you must create accounts with the following services and obtain the required API credentials. Refer to `.env.example` for the required environment variables.
 
-- **Assistant UI Cloud** - Required for the chat interface and conversation management
-- **Neon** (with Neon Auth) - Required for database provisioning and platform authentication
-    - `DATABASE_URL` connection string and Neon Auth StackAuth credentials
-    - **Neon API Key** - Required for programmatic database management (organization-wide API key for creating and managing projects)
-- **Anthropic** - Claude API key required for Haiku 4.5 which is used by default - model can be changed in `src/mastra/agents/codegenAgent.ts`.
+Services:
 
-You can change the model provider by changing the `@ai-sdk` configuration in `src/mastra/agents/codegenAgent.ts`.
+- [Assistant UI](https://assistant-ui.com/)
+  - Create an Assistant UI account and project
+- [Freestyle](https://freestyle.sh/)
+  - Create a Freestyle account and project
+- [Neon](https://neon.com/)
+  - Create a Neon account and project
+  - Initialize Neon Auth and obtain the Neon Auth credentials
+  - Create an organization API key to manage codegen project databases
+- [Anthropic](https://anthropic.com/)
+  - Obtain a Claude API key (Haiku 4.5 is used by default)
 
 ### Environment Variables
 
