@@ -49,6 +49,7 @@ export async function POST(c: ContextWithMastra): Promise<Response> {
     maxSteps: 50,
   });
 
+  // https://github.com/mastra-ai/mastra/issues/9613
   // Tee the stream to capture raw error details before transformation
   let capturedError: any = null;
   const [errorCaptureStream, transformStream] = stream.fullStream.tee();
