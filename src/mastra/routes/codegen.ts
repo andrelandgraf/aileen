@@ -18,7 +18,7 @@ function isOutOfFundsError(error: any): boolean {
  */
 function getEnhancedErrorMessage(error: any): string {
   if (isOutOfFundsError(error)) {
-    return "Snap! Y'all drained our Anthropic API credits! We're honored you interested in Aileen and we'll look into this soon! In the meantime, want to keep the party going? Clone the repo and fire it up locally with your own API keys - it's all yours!";
+    return "Snap! Y'all drained our Anthropic API credits! We're honored you're interested in Aileen and we'll look into this soon! In the meantime, want to keep the party going? Clone the repo and fire it up locally with your own API keys - it's all yours!";
   }
 
   const errorMessage =
