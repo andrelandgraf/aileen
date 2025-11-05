@@ -1,4 +1,4 @@
-import { anthropic } from "@ai-sdk/anthropic";
+import { anthropic, createAnthropic } from "@ai-sdk/anthropic";
 import { Agent } from "@mastra/core/agent";
 import { RuntimeContext } from "@mastra/core/runtime-context";
 import type { CodegenRuntimeContext, UserContext } from "../lib/context";
@@ -205,12 +205,26 @@ This is CRITICAL - always commit changes as your final step after each task comp
 - When you commit, include a clear, descriptive message about what you changed`;
   },
 
-  model: [
-    {
-      model: anthropic("claude-haiku-4-5"),
-      maxRetries: 1,
-    },
-  ],
+  model: ({
+    runtimeContext,
+  }: {
+    runtimeContext: RuntimeContext<CodegenRuntimeContext>;
+  }) => {
+    const modelSelection = runtimeContext.get("modelSelection");
+
+    const modelName = modelSelection?.model || "claude-3-5-haiku-20241022";
+    const apiKey = modelSelection?.apiKey;
+
+    // If personal key provided, use it with createAnthropic
+    if (apiKey) {
+      const customAnthropic = createAnthropic({ apiKey });
+      return customAnthropic(modelName);
+    }
+
+    // Otherwise use platform key (from env)
+    return anthropic(modelName);
+  },
+  maxRetries: 1,
   defaultStreamOptions: {
     maxSteps: 50,
   },

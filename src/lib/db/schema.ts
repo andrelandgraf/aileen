@@ -1,7 +1,22 @@
-import { pgTable, text, timestamp, uuid, jsonb } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+  jsonb,
+  pgEnum,
+  index,
+  unique,
+} from "drizzle-orm/pg-core";
 import { usersSync as usersTable } from "drizzle-orm/neon";
 
 export { usersTable };
+
+export const aiProviderEnum = pgEnum("ai_provider", [
+  "anthropic",
+  "openai",
+  "openrouter",
+]);
 
 export const projectsTable = pgTable("projects", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -40,6 +55,29 @@ export const projectSecretsTable = pgTable("project_secrets", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const userAiApiKeysTable = pgTable(
+  "user_ai_api_keys",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    provider: aiProviderEnum("provider").notNull(),
+    apiKey: text("api_key").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at")
+      .notNull()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => ({
+    userIdIdx: index("user_ai_api_keys_user_id_idx").on(table.userId),
+    uniqueUserProvider: unique("user_ai_api_keys_user_provider_unique").on(
+      table.userId,
+      table.provider,
+    ),
+  }),
+);
+
 export type InsertUser = typeof usersTable.$inferInsert;
 export type SelectUser = typeof usersTable.$inferSelect;
 export type InsertProject = typeof projectsTable.$inferInsert;
@@ -51,3 +89,6 @@ export type ProjectVersion = SelectProjectVersion;
 export type InsertProjectSecret = typeof projectSecretsTable.$inferInsert;
 export type SelectProjectSecret = typeof projectSecretsTable.$inferSelect;
 export type ProjectSecret = SelectProjectSecret;
+export type InsertUserAiApiKey = typeof userAiApiKeysTable.$inferInsert;
+export type SelectUserAiApiKey = typeof userAiApiKeysTable.$inferSelect;
+export type UserAiApiKey = SelectUserAiApiKey;

@@ -9,6 +9,15 @@ export type UserContext = {
 };
 
 /**
+ * Model selection context for AI model configuration
+ */
+export type ModelSelectionContext = {
+  model: string;
+  keyProvider: "platform" | "personal";
+  apiKey?: string;
+};
+
+/**
  * Runtime context type for the codegen agent
  */
 export type CodegenRuntimeContext = {
@@ -16,4 +25,5 @@ export type CodegenRuntimeContext = {
   user: UserContext;
   assistantMessageId: string;
   environmentVariables: Record<string, string>;
+  modelSelection?: ModelSelectionContext;
 };

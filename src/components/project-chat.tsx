@@ -31,7 +31,12 @@ import {
   Code2,
   ArrowLeft,
   MoreVertical,
+  ChevronDown,
 } from "lucide-react";
+import {
+  ModelSelectorModal,
+  type ModelSelection,
+} from "@/components/model-selector-modal";
 import { useEffect, useState } from "react";
 import { FreestyleDevServer } from "freestyle-sandboxes/react/dev-server";
 import { requestDevServer } from "@/actions/preview-actions";
@@ -56,6 +61,11 @@ const ProjectChatContent = ({
   const { devServerUrl, codeServerUrl, deploymentUrl } = useDevServerData();
   const [isDeploying, setIsDeploying] = useState(false);
   const [runtimeError, setRuntimeError] = useState<string | null>(null);
+  const [modelSelection, setModelSelection] = useState<ModelSelection>({
+    provider: "platform",
+    model: "claude-3-5-haiku-20241022",
+  });
+  const [isModelSelectorOpen, setIsModelSelectorOpen] = useState(false);
 
   // Wrap the action to include projectId
   const wrappedRequestDevServer = async (args: { repoId: string }) => {
@@ -89,12 +99,18 @@ const ProjectChatContent = ({
       ),
   });
 
+  console.log(modelSelection.model, modelSelection.provider);
   const runtime = useChatRuntime({
     cloud,
     transport: new AssistantChatTransport({
-      api: `${process.env.NEXT_PUBLIC_MASTRA_API_URL}?projectId=${projectId}`,
+      api: process.env.NEXT_PUBLIC_MASTRA_API_URL,
       headers: {
         Authorization: `Bearer ${accessToken}`,
+      },
+      body: {
+        projectId: projectId,
+        model: modelSelection.model,
+        keyProvider: modelSelection.provider,
       },
     }),
     onError: (error) => {
@@ -118,6 +134,13 @@ const ProjectChatContent = ({
 
   return (
     <AssistantRuntimeProvider runtime={runtime}>
+      <ModelSelectorModal
+        open={isModelSelectorOpen}
+        onOpenChange={setIsModelSelectorOpen}
+        accessToken={accessToken}
+        selectedModel={modelSelection}
+        onModelSelect={setModelSelection}
+      />
       <div className="flex h-dvh flex-col">
         <header className="flex items-center justify-between px-4 py-2 border-b">
           <div className="flex items-center gap-4">
@@ -131,6 +154,18 @@ const ProjectChatContent = ({
             <VersionsDropdown projectId={projectId} accessToken={accessToken} />
           </div>
           <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsModelSelectorOpen(true)}
+            >
+              <span className="mr-2">
+                {modelSelection.provider === "platform"
+                  ? "Haiku (platform)"
+                  : "Haiku (personal)"}
+              </span>
+              <ChevronDown className="h-4 w-4" />
+            </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm">

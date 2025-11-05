@@ -3,7 +3,8 @@ import { db } from "@/lib/db/db";
 import { projectSecretsTable, projectsTable } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import type { Context, Next } from "hono";
-import type { UserContext } from "./context";
+import type { UserContext, ModelSelectionContext } from "./context";
+import { getDecryptedApiKey } from "@/app/api/v1/user/ai-keys/route";
 
 export async function auth(c: Context, next: Next) {
   try {
@@ -34,9 +35,14 @@ export async function auth(c: Context, next: Next) {
 
     console.log("[Mastra Auth] User authenticated:", user.id);
 
-    const projectId = c.req.query("projectId");
+    // Extract data from the request body
+    const request = c.req.raw.clone();
+    const body = await request.json();
+    console.log("[Mastra Auth] Body:", body);
+
+    const projectId = body.projectId;
     if (!projectId) {
-      console.error("[Mastra Auth] No projectId provided");
+      console.error("[Mastra Auth] No projectId provided in body");
       return c.json({ error: "Missing projectId" }, 400);
     }
 
@@ -73,11 +79,6 @@ export async function auth(c: Context, next: Next) {
       "[Mastra Auth] RuntimeContext populated with project and user data",
     );
 
-    // Extract the last message ID from the request body
-    const request = c.req.raw.clone();
-    const body = await request.json();
-    console.log("[Mastra Auth] Body:", body);
-
     // Get the last message ID (the user's current message)
     const messages = body.messages as Array<{ id: string; role: string }>;
     const lastMessage = messages?.[messages.length - 1];
@@ -107,6 +108,41 @@ export async function auth(c: Context, next: Next) {
     }
     console.log("[Mastra Auth] Current dev secrets found:", currentDevSecrets);
     runtimeContext.set("environmentVariables", currentDevSecrets.secrets);
+
+    // Parse body for model selection
+    const model = body.model || "claude-3-5-haiku-20241022";
+    const keyProvider = body.keyProvider || "platform";
+    console.log("[Mastra Auth] Model from body:", model);
+    console.log("[Mastra Auth] Key provider from body:", keyProvider);
+
+    // If using personal key, fetch and decrypt it from database
+    let apiKey: string | undefined;
+    if (keyProvider === "personal") {
+      const decryptedKey = await getDecryptedApiKey(user.id, "anthropic");
+      if (!decryptedKey) {
+        console.error("[Mastra Auth] Personal API key not found");
+        return c.json(
+          {
+            error:
+              "Personal API key not found. Please add your Anthropic API key in settings.",
+          },
+          { status: 400 },
+        );
+      }
+      apiKey = decryptedKey;
+    }
+
+    // Add model selection to runtime context
+    const modelSelection: ModelSelectionContext = {
+      model,
+      keyProvider: keyProvider as "platform" | "personal",
+      apiKey, // Only set if using personal key
+    };
+    runtimeContext.set("modelSelection", modelSelection);
+
+    console.log(
+      `[Mastra Auth] Model selection configured: ${model}, provider: ${keyProvider}`,
+    );
 
     await next();
   } catch (error) {
