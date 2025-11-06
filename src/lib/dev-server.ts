@@ -64,17 +64,10 @@ export async function requestDevServer(
       );
     }
 
-    // Decrypt secrets if encrypted
-    let secretsData: Record<string, string>;
-    if (currentDevSecrets.isEncrypted) {
-      console.log("[DevServer] Decrypting encrypted secrets...");
-      const decryptedJson = decrypt(currentDevSecrets.secrets as unknown as string);
-      secretsData = JSON.parse(decryptedJson);
-    } else {
-      // Legacy unencrypted secrets
-      console.log("[DevServer] Using legacy unencrypted secrets");
-      secretsData = currentDevSecrets.secrets;
-    }
+    // Decrypt secrets
+    console.log("[DevServer] Decrypting secrets...");
+    const decryptedJson = decrypt(currentDevSecrets.secrets);
+    const secretsData: Record<string, string> = JSON.parse(decryptedJson);
 
     console.log(
       "[DevServer] Found secrets with",

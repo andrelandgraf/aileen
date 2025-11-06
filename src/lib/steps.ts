@@ -94,8 +94,7 @@ export async function saveProjectSecrets(
 
   await db.insert(projectSecretsTable).values({
     projectVersionId: versionId,
-    secrets: encryptedSecrets as any, // Type assertion: encrypted string stored as JSONB
-    isEncrypted: true,
+    secrets: encryptedSecrets,
   });
   console.log("[Projects] Project secrets saved (encrypted)");
 }
@@ -174,15 +173,9 @@ export async function copyProjectSecrets(
     return;
   }
 
-  // Decrypt existing secrets if encrypted
-  let secretsData: Record<string, string>;
-  if (currentSecrets.isEncrypted) {
-    const decryptedJson = decrypt(currentSecrets.secrets as unknown as string);
-    secretsData = JSON.parse(decryptedJson);
-  } else {
-    // Legacy unencrypted secrets
-    secretsData = currentSecrets.secrets;
-  }
+  // Decrypt existing secrets
+  const decryptedJson = decrypt(currentSecrets.secrets);
+  const secretsData: Record<string, string> = JSON.parse(decryptedJson);
 
   // Re-encrypt for new version
   const secretsJson = JSON.stringify(secretsData);
@@ -190,8 +183,7 @@ export async function copyProjectSecrets(
 
   await db.insert(projectSecretsTable).values({
     projectVersionId: toVersionId,
-    secrets: encryptedSecrets as any,
-    isEncrypted: true,
+    secrets: encryptedSecrets,
   });
   console.log("[Projects] Secrets copied and encrypted successfully");
 }

@@ -145,17 +145,10 @@ export async function POST(req: Request, { params }: RouteParams) {
       );
     }
 
-    // Decrypt secrets if encrypted
-    let secretsData: Record<string, string>;
-    if (versionSecrets.isEncrypted) {
-      console.log("[POST Restore Version] Decrypting encrypted secrets...");
-      const decryptedJson = decrypt(versionSecrets.secrets as unknown as string);
-      secretsData = JSON.parse(decryptedJson);
-    } else {
-      // Legacy unencrypted secrets
-      console.log("[POST Restore Version] Using legacy unencrypted secrets");
-      secretsData = versionSecrets.secrets;
-    }
+    // Decrypt secrets
+    console.log("[POST Restore Version] Decrypting secrets...");
+    const decryptedJson = decrypt(versionSecrets.secrets);
+    const secretsData: Record<string, string> = JSON.parse(decryptedJson);
 
     // Step 2: Request dev server to get process access (also allowlists domain in Neon Auth)
     console.log("[POST Restore Version] Requesting dev server...");

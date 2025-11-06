@@ -314,8 +314,7 @@ export async function createFreestyleTools(
 
         await db.insert(projectSecretsTable).values({
           projectVersionId: version.id,
-          secrets: encryptedSecrets as any,
-          isEncrypted: true,
+          secrets: encryptedSecrets,
         });
         console.log(
           `[freestyle-commit-and-push] Stored encrypted secrets for version ${version.id}`,
