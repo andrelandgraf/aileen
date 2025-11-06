@@ -71,6 +71,8 @@ cp example.env .env
 
 All required environment variables are documented in `example.env`.
 
+**Encryption**: Stored project secrets and API keys are encrypted at rest. You need to set the `ENCRYPTION_KEY` environment variable for this. Generate a new encryption key by running `bun run scripts/get-encryption-key.ts`.
+
 ### Installation
 
 ```bash
