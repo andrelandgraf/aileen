@@ -7,6 +7,7 @@ import {
   pgEnum,
   index,
   unique,
+  boolean,
 } from "drizzle-orm/pg-core";
 import { usersSync as usersTable } from "drizzle-orm/neon";
 
@@ -52,6 +53,7 @@ export const projectSecretsTable = pgTable("project_secrets", {
     .notNull()
     .references(() => projectVersionsTable.id),
   secrets: jsonb("secrets").notNull().$type<Record<string, string>>(),
+  isEncrypted: boolean("is_encrypted").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

@@ -1,0 +1,1 @@
+ALTER TABLE "project_secrets" ADD COLUMN "is_encrypted" boolean DEFAULT false NOT NULL;

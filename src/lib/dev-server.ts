@@ -4,6 +4,7 @@ import { projectSecretsTable, type SelectProject } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { freestyleService } from "./freestyle";
 import { neonService } from "./neon";
+import { decrypt } from "@/lib/encryption";
 
 /**
  * Request a dev server for a project with automatic secret management
@@ -63,12 +64,24 @@ export async function requestDevServer(
       );
     }
 
+    // Decrypt secrets if encrypted
+    let secretsData: Record<string, string>;
+    if (currentDevSecrets.isEncrypted) {
+      console.log("[DevServer] Decrypting encrypted secrets...");
+      const decryptedJson = decrypt(currentDevSecrets.secrets as unknown as string);
+      secretsData = JSON.parse(decryptedJson);
+    } else {
+      // Legacy unencrypted secrets
+      console.log("[DevServer] Using legacy unencrypted secrets");
+      secretsData = currentDevSecrets.secrets;
+    }
+
     console.log(
       "[DevServer] Found secrets with",
-      Object.keys(currentDevSecrets.secrets).length,
+      Object.keys(secretsData).length,
       "environment variables",
     );
-    secrets = currentDevSecrets.secrets;
+    secrets = secretsData;
   }
 
   // Request dev server using the freestyle service

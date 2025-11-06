@@ -9,6 +9,7 @@ import { eq } from "drizzle-orm";
 import { getLatestCommit } from "@/lib/freestyle";
 import { neonService } from "@/lib/neon";
 import { requestDevServer } from "@/lib/dev-server";
+import { encrypt, decrypt } from "@/lib/encryption";
 
 export async function getNeonProductionBranch(neonProjectId: string) {
   "use step";
@@ -86,11 +87,17 @@ export async function saveProjectSecrets(
 ) {
   "use step";
   console.log("[Projects] Saving project secrets...");
+
+  // Serialize and encrypt secrets
+  const secretsJson = JSON.stringify(secrets);
+  const encryptedSecrets = encrypt(secretsJson);
+
   await db.insert(projectSecretsTable).values({
     projectVersionId: versionId,
-    secrets,
+    secrets: encryptedSecrets as any, // Type assertion: encrypted string stored as JSONB
+    isEncrypted: true,
   });
-  console.log("[Projects] Project secrets saved");
+  console.log("[Projects] Project secrets saved (encrypted)");
 }
 
 export async function setCurrentDevVersion(
@@ -167,9 +174,24 @@ export async function copyProjectSecrets(
     return;
   }
 
+  // Decrypt existing secrets if encrypted
+  let secretsData: Record<string, string>;
+  if (currentSecrets.isEncrypted) {
+    const decryptedJson = decrypt(currentSecrets.secrets as unknown as string);
+    secretsData = JSON.parse(decryptedJson);
+  } else {
+    // Legacy unencrypted secrets
+    secretsData = currentSecrets.secrets;
+  }
+
+  // Re-encrypt for new version
+  const secretsJson = JSON.stringify(secretsData);
+  const encryptedSecrets = encrypt(secretsJson);
+
   await db.insert(projectSecretsTable).values({
     projectVersionId: toVersionId,
-    secrets: currentSecrets.secrets,
+    secrets: encryptedSecrets as any,
+    isEncrypted: true,
   });
-  console.log("[Projects] Secrets copied successfully");
+  console.log("[Projects] Secrets copied and encrypted successfully");
 }

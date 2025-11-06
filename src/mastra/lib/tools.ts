@@ -15,6 +15,7 @@ import {
   projectSecretsTable,
 } from "@/lib/db/schema";
 import { requestDevServer } from "@/lib/dev-server";
+import { encrypt } from "@/lib/encryption";
 
 export async function createFreestyleTools(
   repoId: string,
@@ -306,12 +307,18 @@ export async function createFreestyleTools(
         console.log(
           `[freestyle-commit-and-push] Storing ${Object.keys(finalEnvVars).length} environment variables for version ${version.id}...`,
         );
+
+        // Serialize and encrypt secrets
+        const secretsJson = JSON.stringify(finalEnvVars);
+        const encryptedSecrets = encrypt(secretsJson);
+
         await db.insert(projectSecretsTable).values({
           projectVersionId: version.id,
-          secrets: finalEnvVars,
+          secrets: encryptedSecrets as any,
+          isEncrypted: true,
         });
         console.log(
-          `[freestyle-commit-and-push] Stored secrets for version ${version.id}`,
+          `[freestyle-commit-and-push] Stored encrypted secrets for version ${version.id}`,
         );
 
         // Update the project's current dev version

@@ -10,6 +10,7 @@ import { eq, and, desc } from "drizzle-orm";
 import { setMainBranchToCommit } from "@/lib/freestyle";
 import { neonService } from "@/lib/neon";
 import { requestDevServer } from "@/lib/dev-server";
+import { decrypt } from "@/lib/encryption";
 
 interface RouteParams {
   params: Promise<{
@@ -144,11 +145,23 @@ export async function POST(req: Request, { params }: RouteParams) {
       );
     }
 
+    // Decrypt secrets if encrypted
+    let secretsData: Record<string, string>;
+    if (versionSecrets.isEncrypted) {
+      console.log("[POST Restore Version] Decrypting encrypted secrets...");
+      const decryptedJson = decrypt(versionSecrets.secrets as unknown as string);
+      secretsData = JSON.parse(decryptedJson);
+    } else {
+      // Legacy unencrypted secrets
+      console.log("[POST Restore Version] Using legacy unencrypted secrets");
+      secretsData = versionSecrets.secrets;
+    }
+
     // Step 2: Request dev server to get process access (also allowlists domain in Neon Auth)
     console.log("[POST Restore Version] Requesting dev server...");
     const devServerResponse = await requestDevServer(
       project,
-      versionSecrets.secrets,
+      secretsData,
     );
 
     console.log("[POST Restore Version] Dev server ready");
