@@ -152,10 +152,7 @@ export async function POST(req: Request, { params }: RouteParams) {
 
     // Step 2: Request dev server to get process access (also allowlists domain in Neon Auth)
     console.log("[POST Restore Version] Requesting dev server...");
-    const devServerResponse = await requestDevServer(
-      project,
-      secretsData,
-    );
+    const devServerResponse = await requestDevServer(project, secretsData);
 
     console.log("[POST Restore Version] Dev server ready");
 

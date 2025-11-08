@@ -41,12 +41,8 @@
           "name": "project_secrets_project_version_id_project_versions_id_fk",
           "tableFrom": "project_secrets",
           "tableTo": "project_versions",
-          "columnsFrom": [
-            "project_version_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["project_version_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -112,12 +108,8 @@
           "name": "project_versions_project_id_projects_id_fk",
           "tableFrom": "project_versions",
           "tableTo": "projects",
-          "columnsFrom": [
-            "project_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["project_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -196,12 +188,8 @@
           "tableFrom": "projects",
           "tableTo": "users_sync",
           "schemaTo": "neon_auth",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -279,12 +267,8 @@
           "tableFrom": "user_ai_api_keys",
           "tableTo": "users_sync",
           "schemaTo": "neon_auth",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -294,10 +278,7 @@
         "user_ai_api_keys_user_provider_unique": {
           "name": "user_ai_api_keys_user_provider_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "user_id",
-            "provider"
-          ]
+          "columns": ["user_id", "provider"]
         }
       },
       "policies": {},
@@ -364,11 +345,7 @@
     "public.ai_provider": {
       "name": "ai_provider",
       "schema": "public",
-      "values": [
-        "anthropic",
-        "openai",
-        "openrouter"
-      ]
+      "values": ["anthropic", "openai", "openrouter"]
     }
   },
   "schemas": {},

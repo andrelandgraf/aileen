@@ -17,12 +17,15 @@ function isOutOfFundsError(error: any): boolean {
 /**
  * Extracts user-friendly error message from an error object
  */
-function getEnhancedErrorMessage(error: any, keyProvider?: "platform" | "personal"): string {
+function getEnhancedErrorMessage(
+  error: any,
+  keyProvider?: "platform" | "personal",
+): string {
   if (isOutOfFundsError(error)) {
     if (keyProvider === "personal") {
       return "Snap! Looks like you're out of funds. Please check your Anthropic API account and add credits to continue.";
     }
-    
+
     // Platform key error
     return "Snap! Y'all drained our Anthropic API credits! We're honored you're interested in Aileen and we'll look into this soon! In the meantime, you can keep the party going by clicking the model selector in the navbar and providing your own API key. Or, clone the repo and fire it up locally with your own keys - it's all yours!";
   }
@@ -50,7 +53,9 @@ export async function POST(c: ContextWithMastra): Promise<Response> {
   console.log(`[Codegen] Processing request with ${messages.length} messages`);
 
   // Extract keyProvider from runtime context for error handling
-  const modelSelection = runtimeContext.get("modelSelection") as ModelSelectionContext | undefined;
+  const modelSelection = runtimeContext.get("modelSelection") as
+    | ModelSelectionContext
+    | undefined;
   const keyProvider = modelSelection?.keyProvider;
 
   const agent = mastra.getAgent("codegenAgent");
