@@ -1,5 +1,11 @@
 {
   "mcpServers": {
+    "freestyle-docs": {
+      "name": "freestyle-documentation",
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "https://docs.freestyle.sh/api/mcp/mcp"],
+      "env": {}
+    },
     "next-devtools": {
       "command": "npx",
       "args": ["-y", "next-devtools-mcp@latest"]
@@ -8,16 +14,9 @@
       "type": "stdio",
       "command": "npx",
       "args": ["-y", "@mastra/mcp-docs-server"]
+    },
+    "Sentry": {
+      "url": "https://mcp.sentry.dev/mcp/andre-landgraf/aileen"
     }
-  },
-  "freestyle-docs": {
-    "name": "freestyle-documentation",
-    "command": "npx",
-    "args": ["-y", "mcp-remote", "https://docs.freestyle.sh/api/mcp/mcp"],
-    "env": {}
-  },
-  "Neon": {
-    "command": "npx",
-    "args": ["-y", "mcp-remote", "https://mcp.neon.tech/mcp"]
   }
 }
