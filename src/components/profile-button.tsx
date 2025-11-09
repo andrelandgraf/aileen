@@ -8,6 +8,8 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { ThemeSelector } from "@/components/theme-selector";
 import { getUserName, getUserInitials } from "@/lib/stack/utils";
 
 export function ProfileButton() {
@@ -54,7 +56,10 @@ export function ProfileButton() {
               </p>
             </div>
           </div>
-          <div className="border-t pt-2">
+          <Separator />
+          <ThemeSelector />
+          <Separator />
+          <div>
             <Button
               variant="ghost"
               className="w-full justify-start text-sm"
