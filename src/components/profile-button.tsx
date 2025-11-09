@@ -9,6 +9,8 @@ import {
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { getUserName, getUserInitials } from "@/lib/stack/utils";
+import { ThemeSelector } from "@/components/theme/selector";
+import { Separator } from "@/components/ui/separator";
 
 export function ProfileButton() {
   const user = useUser();
@@ -36,7 +38,7 @@ export function ProfileButton() {
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-72" align="end">
-        <div className="flex flex-col space-y-2">
+        <div className="flex flex-col space-y-4">
           <div className="flex items-center space-x-2">
             <Avatar className="h-8 w-8">
               <AvatarImage
@@ -54,17 +56,18 @@ export function ProfileButton() {
               </p>
             </div>
           </div>
-          <div className="border-t pt-2">
-            <Button
-              variant="ghost"
-              className="w-full justify-start text-sm"
-              onClick={async () => {
-                await user.signOut();
-              }}
-            >
-              Logout
-            </Button>
-          </div>
+          <Separator />
+          <ThemeSelector />
+          <Separator />
+          <Button
+            variant="ghost"
+            className="w-full justify-start text-sm"
+            onClick={async () => {
+              await user.signOut();
+            }}
+          >
+            Logout
+          </Button>
         </div>
       </PopoverContent>
     </Popover>
