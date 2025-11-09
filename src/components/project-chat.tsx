@@ -1,21 +1,15 @@
 "use client";
 
-import { AssistantRuntimeProvider } from "@assistant-ui/react";
-import {
-  useChatRuntime,
-  AssistantChatTransport,
-} from "@assistant-ui/react-ai-sdk";
+import { requestDevServer } from "@/actions/preview-actions";
 import { Thread } from "@/components/assistant-ui/thread";
-import { AssistantCloud } from "@assistant-ui/react";
+import { useDevServerData } from "@/components/dev-server-context";
+import { ModelSelectorModal } from "@/components/model-selector-modal";
 import { ProfileButton } from "@/components/profile-button";
-import { VersionsDropdown } from "@/components/versions-dropdown";
 import {
   ProjectContextProvider,
   useProjectData,
 } from "@/components/project-context";
-import { useDevServerData } from "@/components/dev-server-context";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,23 +19,28 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  ExternalLink,
-  Rocket,
-  Code2,
-  ArrowLeft,
-  MoreVertical,
-  ChevronDown,
-} from "lucide-react";
-import { ModelSelectorModal } from "@/components/model-selector-modal";
+import { Skeleton } from "@/components/ui/skeleton";
+import { VersionsDropdown } from "@/components/versions-dropdown";
 import { useModelSelection } from "@/lib/model-selection/hooks";
-import { useEffect, useState } from "react";
-import { FreestyleDevServer } from "freestyle-sandboxes/react/dev-server";
-import { requestDevServer } from "@/actions/preview-actions";
-import Link from "next/link";
+import { AssistantCloud, AssistantRuntimeProvider } from "@assistant-ui/react";
 import {
-  PanelGroup,
+  AssistantChatTransport,
+  useChatRuntime,
+} from "@assistant-ui/react-ai-sdk";
+import { FreestyleDevServer } from "freestyle-sandboxes/react/dev-server";
+import {
+  ArrowLeft,
+  ChevronDown,
+  Code2,
+  ExternalLink,
+  MoreVertical,
+  Rocket,
+} from "lucide-react";
+import Link from "next/link";
+import { useCallback, useEffect, useState } from "react";
+import {
   Panel,
+  PanelGroup,
   PanelResizeHandle,
 } from "react-resizable-panels";
 
@@ -69,6 +68,38 @@ const ProjectChatContent = ({
     validatePersonalProvider: true,
   });
   const [isModelSelectorOpen, setIsModelSelectorOpen] = useState(false);
+
+  // Panel size persistence
+  const panelStorageKey = `aileen-panel-sizes-${projectId}`;
+  const [panelSizes, setPanelSizes] = useState<number[]>([50, 50]); // Default to 50/50 split
+  const [sizesLoaded, setSizesLoaded] = useState(false);
+
+  // Load panel sizes from localStorage on mount
+  useEffect(() => {
+    try {
+      const savedSizes = localStorage.getItem(panelStorageKey);
+      if (savedSizes) {
+        const parsed = JSON.parse(savedSizes);
+        if (Array.isArray(parsed) && parsed.length === 2 && parsed.every(s => typeof s === 'number')) {
+          setPanelSizes(parsed);
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to load panel sizes from localStorage:', error);
+    } finally {
+      setSizesLoaded(true);
+    }
+  }, [panelStorageKey]);
+
+  // Save panel sizes to localStorage when they change
+  const handlePanelLayout = useCallback((sizes: number[]) => {
+    setPanelSizes(sizes);
+    try {
+      localStorage.setItem(panelStorageKey, JSON.stringify(sizes));
+    } catch (error) {
+      console.warn('Failed to save panel sizes to localStorage:', error);
+    }
+  }, [panelStorageKey]);
 
   // Wrap the action to include projectId
   const wrappedRequestDevServer = async (args: { repoId: string }) => {
@@ -266,49 +297,55 @@ const ProjectChatContent = ({
             </div>
           </div>
         )}
-        <PanelGroup direction="horizontal" className="flex-1 overflow-hidden">
-          {/* Chat side */}
-          <Panel defaultSize={50} minSize={30}>
-            <div className="h-full overflow-hidden border-r">
-              {isThreadReady && isVersionReady ? (
-                <Thread />
-              ) : (
-                <div className="flex flex-col h-full p-4 gap-4">
-                  <Skeleton className="h-12 w-full" />
-                  <Skeleton className="h-20 w-3/4" />
-                  <Skeleton className="h-20 w-2/3 self-end" />
-                  <Skeleton className="h-20 w-3/4" />
-                  <Skeleton className="h-20 w-2/3 self-end" />
-                  <div className="flex-1" />
-                  <Skeleton className="h-12 w-full" />
-                </div>
-              )}
-            </div>
-          </Panel>
-
-          <PanelResizeHandle className="w-1 bg-border hover:bg-primary/50 transition-colors cursor-col-resize" />
-
-          {/* Preview side */}
-          <Panel defaultSize={50} minSize={30}>
-            <div className="h-full overflow-hidden bg-muted">
-              {isVersionReady ? (
-                <FreestyleDevServer
-                  actions={{ requestDevServer: wrappedRequestDevServer }}
-                  repoId={repoId}
-                />
-              ) : (
-                <div className="flex items-center justify-center h-full">
-                  <div className="text-center space-y-2">
-                    <div className="text-muted-foreground">
-                      Initializing project...
-                    </div>
-                    <Skeleton className="h-4 w-48 mx-auto" />
+        {sizesLoaded ? (
+          <PanelGroup direction="horizontal" className="flex-1 overflow-hidden" onLayout={handlePanelLayout}>
+            {/* Chat side */}
+            <Panel defaultSize={panelSizes[0]} minSize={30}>
+              <div className="h-full overflow-hidden border-r">
+                {isThreadReady && isVersionReady ? (
+                  <Thread />
+                ) : (
+                  <div className="flex flex-col h-full p-4 gap-4">
+                    <Skeleton className="h-12 w-full" />
+                    <Skeleton className="h-20 w-3/4" />
+                    <Skeleton className="h-20 w-2/3 self-end" />
+                    <Skeleton className="h-20 w-3/4" />
+                    <Skeleton className="h-20 w-2/3 self-end" />
+                    <div className="flex-1" />
+                    <Skeleton className="h-12 w-full" />
                   </div>
-                </div>
-              )}
-            </div>
-          </Panel>
-        </PanelGroup>
+                )}
+              </div>
+            </Panel>
+
+            <PanelResizeHandle className="w-1 bg-border hover:bg-primary/50 transition-colors cursor-col-resize" />
+
+            {/* Preview side */}
+            <Panel defaultSize={panelSizes[1]} minSize={30}>
+              <div className="h-full overflow-hidden bg-muted">
+                {isVersionReady ? (
+                  <FreestyleDevServer
+                    actions={{ requestDevServer: wrappedRequestDevServer }}
+                    repoId={repoId}
+                  />
+                ) : (
+                  <div className="flex items-center justify-center h-full">
+                    <div className="text-center space-y-2">
+                      <div className="text-muted-foreground">
+                        Initializing project...
+                      </div>
+                      <Skeleton className="h-4 w-48 mx-auto" />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </Panel>
+          </PanelGroup>
+        ) : (
+          <div className="flex-1 flex items-center justify-center">
+            <Skeleton className="h-full w-full" />
+          </div>
+        )}
       </div>
     </AssistantRuntimeProvider>
   );
