@@ -33,6 +33,7 @@ import {
   ArrowLeft,
   MoreVertical,
   ChevronDown,
+  RotateCcw,
 } from "lucide-react";
 import { ModelSelectorModal } from "@/components/model-selector-modal";
 import { useModelSelection } from "@/lib/model-selection/hooks";
@@ -63,7 +64,12 @@ const ProjectChatContent = ({
   accessToken,
 }: ProjectChatProps) => {
   const { currentVersionId } = useProjectData();
-  const { devServerUrl, codeServerUrl, deploymentUrl } = useDevServerData();
+  const {
+    devServerUrl,
+    codeServerUrl,
+    deploymentUrl,
+    refreshUrls,
+  } = useDevServerData();
   const [isDeploying, setIsDeploying] = useState(false);
   const [runtimeError, setRuntimeError] = useState<string | null>(null);
   const { modelSelection, updateModelSelection } = useModelSelection({
@@ -71,12 +77,41 @@ const ProjectChatContent = ({
     validatePersonalProvider: true,
   });
   const [isModelSelectorOpen, setIsModelSelectorOpen] = useState(false);
+  const [isRestartingDevServer, setIsRestartingDevServer] = useState(false);
   const [activeDevServerTab, setActiveDevServerTab] =
     useState<"preview" | "logs">("preview");
 
   // Wrap the action to include projectId
   const wrappedRequestDevServer = async (args: { repoId: string }) => {
     return await requestDevServer({ projectId });
+  };
+
+  const handleRestartDevServer = async () => {
+    if (isRestartingDevServer) {
+      return;
+    }
+
+    setIsRestartingDevServer(true);
+    try {
+      const response = await fetch("/api/v1/dev-servers/restart", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ projectId }),
+      });
+
+      if (!response.ok) {
+        const message = await response.text();
+        throw new Error(message || "Failed to restart dev server");
+      }
+
+      await refreshUrls();
+    } catch (error) {
+      console.error("[ProjectChat] Failed to restart dev server:", error);
+    } finally {
+      setIsRestartingDevServer(false);
+    }
   };
 
   const handleDeploy = async () => {
@@ -208,6 +243,17 @@ const ProjectChatContent = ({
                       <span>View in VS Code</span>
                     </DropdownMenuItem>
                   )}
+                  <DropdownMenuItem
+                    onClick={handleRestartDevServer}
+                    disabled={isRestartingDevServer}
+                  >
+                    <RotateCcw className="h-4 w-4 mr-2" />
+                    <span>
+                      {isRestartingDevServer
+                        ? "Restarting Dev Server..."
+                        : "Restart Dev Server"}
+                    </span>
+                  </DropdownMenuItem>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel>Production</DropdownMenuLabel>
