@@ -7,6 +7,7 @@ import { FreestyleSandboxes } from "freestyle-sandboxes";
 import { neonService } from "@/lib/neon";
 import { generateDeploymentUrl } from "@/lib/freestyle";
 import { decrypt } from "@/lib/encryption";
+import { mainConfig } from "@/lib/config";
 
 interface RouteParams {
   params: Promise<{
@@ -15,7 +16,7 @@ interface RouteParams {
 }
 
 const freestyle = new FreestyleSandboxes({
-  apiKey: process.env.FREESTYLE_API_KEY!,
+  apiKey: mainConfig.freestyle.apiKey,
 });
 
 export async function POST(req: Request, { params }: RouteParams) {

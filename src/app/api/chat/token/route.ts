@@ -1,10 +1,11 @@
 import { stackServerApp } from "@/lib/stack/server";
 import { AssistantCloud } from "@assistant-ui/react";
+import { mainConfig } from "@/lib/config";
 
 export const POST = async () => {
   const user = await stackServerApp.getUser({ or: "throw" });
   const assistantCloud = new AssistantCloud({
-    apiKey: process.env.ASSISTANT_API_KEY!,
+    apiKey: mainConfig.assistantUI.apiKey,
     userId: user.id,
     workspaceId: user.id,
   });

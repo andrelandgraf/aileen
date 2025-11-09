@@ -1,3 +1,4 @@
+import { mainConfig } from "@/lib/config";
 import { MCPClient } from "@mastra/mcp";
 
 export const neonMcpClient = new MCPClient({
@@ -7,7 +8,7 @@ export const neonMcpClient = new MCPClient({
       url: new URL("https://mcp.neon.tech/mcp"),
       requestInit: {
         headers: {
-          Authorization: `Bearer ${process.env.NEON_API_KEY || ""}`,
+          Authorization: `Bearer ${mainConfig.neon.apiKey}`,
         },
       },
     },

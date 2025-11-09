@@ -1,4 +1,5 @@
 import invariant from "tiny-invariant";
+import { mainConfig } from "./config";
 
 // Types
 export type Branch = {
@@ -696,4 +697,4 @@ export class NeonService {
   }
 }
 
-export const neonService = new NeonService(process.env.NEON_API_KEY!);
+export const neonService = new NeonService(mainConfig.neon.apiKey);

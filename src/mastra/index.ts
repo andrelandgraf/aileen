@@ -2,6 +2,7 @@ import { Mastra } from "@mastra/core";
 import { codegenAgent } from "./agents/codegenAgent";
 import { auth } from "./lib/middleware";
 import * as codegenRoute from "./routes/codegen";
+import { mainConfig } from "@/lib/config";
 
 export const mastra = new Mastra({
   agents: { codegenAgent },
@@ -16,7 +17,7 @@ export const mastra = new Mastra({
     host: "localhost",
     cors: {
       origin: [
-        process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
+        mainConfig.public_url,
         "http://localhost:4111", // Allow Mastra playground
       ],
       allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],

@@ -2,6 +2,7 @@
 
 import { AssistantCloud } from "@assistant-ui/react";
 import invariant from "tiny-invariant";
+import { mainConfig } from "./config";
 
 export async function createAssistantThread(
   userId: string,
@@ -10,7 +11,7 @@ export async function createAssistantThread(
   console.log("[AssistantCloud] Creating thread for project:", projectName);
 
   const assistantCloud = new AssistantCloud({
-    apiKey: process.env.ASSISTANT_API_KEY!,
+    apiKey: mainConfig.assistantUI.apiKey,
     userId: userId,
     workspaceId: userId,
   });
@@ -36,7 +37,7 @@ export async function deleteAssistantThread(
   console.log("[AssistantCloud] Deleting thread:", threadId);
 
   const assistantCloud = new AssistantCloud({
-    apiKey: process.env.ASSISTANT_API_KEY!,
+    apiKey: mainConfig.assistantUI.apiKey,
     userId: userId,
     workspaceId: userId,
   });

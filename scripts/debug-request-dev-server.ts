@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
 
 import { FreestyleSandboxes } from "freestyle-sandboxes";
+import { mainConfig } from "@/lib/config";
 
 async function main() {
   console.log("🚀 Starting Freestyle Dev Server Request Debug Script...\n");
@@ -18,11 +19,7 @@ async function main() {
   console.log(`📦 Repo ID: ${repoId}`);
 
   // Get API key from environment
-  const apiKey = process.env.FREESTYLE_API_KEY;
-  if (!apiKey) {
-    console.error("❌ Error: FREESTYLE_API_KEY environment variable not set");
-    process.exit(1);
-  }
+  const apiKey = mainConfig.freestyle.apiKey;
 
   console.log("🔑 API Key found\n");
 

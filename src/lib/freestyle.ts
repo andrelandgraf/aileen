@@ -1,5 +1,6 @@
 import { FreestyleSandboxes } from "freestyle-sandboxes";
 import type { FreestyleDevServer } from "freestyle-sandboxes";
+import { mainConfig } from "./config";
 
 interface CreateRepoParams {
   name: string;
@@ -236,7 +237,7 @@ export class FreestyleService {
 }
 
 export const freestyleService = new FreestyleService(
-  process.env.FREESTYLE_API_KEY!,
+  mainConfig.freestyle.apiKey,
 );
 
 /**
