@@ -10,6 +10,7 @@ import { getLatestCommit } from "@/lib/freestyle";
 import { neonService } from "@/lib/neon";
 import { requestDevServer } from "@/lib/dev-server";
 import { encrypt, decrypt } from "@/lib/encryption";
+import { deleteAssistantThread } from "@/lib/assistant-ui";
 
 export async function getNeonProductionBranch(neonProjectId: string) {
   "use step";
@@ -212,7 +213,6 @@ export async function deleteAssistantUIThread(
 ) {
   "use step";
   console.log("[DELETE Project] Deleting Assistant UI thread:", threadId);
-  const { deleteAssistantThread } = await import("@/lib/assistant-ui");
   await deleteAssistantThread(userId, threadId);
   console.log("[DELETE Project] Assistant UI thread deleted successfully");
 }

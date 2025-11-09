@@ -1,3 +1,5 @@
+import type { cookies } from "next/headers";
+
 export interface CookieOptions {
   maxAge?: number; // in seconds
   path?: string;
@@ -5,6 +7,8 @@ export interface CookieOptions {
   sameSite?: "Strict" | "Lax" | "None";
   secure?: boolean;
 }
+
+type CookieStore = Awaited<ReturnType<typeof cookies>>;
 
 // ============================================================================
 // CLIENT-SIDE COOKIE UTILITIES (Browser only)
@@ -120,7 +124,7 @@ export function setJsonCookie<T>(
  */
 export function getServerCookie(
   name: string,
-  cookieStore: Awaited<ReturnType<typeof import("next/headers").cookies>>,
+  cookieStore: CookieStore,
 ): string | null {
   const cookie = cookieStore.get(name);
   return cookie ? decodeURIComponent(cookie.value) : null;
@@ -143,7 +147,7 @@ export function getServerCookie(
 export function setServerCookie(
   name: string,
   value: string,
-  cookieStore: Awaited<ReturnType<typeof import("next/headers").cookies>> & {
+  cookieStore: CookieStore & {
     set: (name: string, value: string, options?: any) => void;
   },
   options: CookieOptions = {},
@@ -182,7 +186,7 @@ export function setServerCookie(
  */
 export function deleteServerCookie(
   name: string,
-  cookieStore: Awaited<ReturnType<typeof import("next/headers").cookies>> & {
+  cookieStore: CookieStore & {
     delete: (name: string) => void;
   },
   path: string = "/",
@@ -205,7 +209,7 @@ export function deleteServerCookie(
  */
 export function getServerJsonCookie<T>(
   name: string,
-  cookieStore: Awaited<ReturnType<typeof import("next/headers").cookies>>,
+  cookieStore: CookieStore,
 ): T | null {
   const value = getServerCookie(name, cookieStore);
   if (!value) return null;
@@ -235,7 +239,7 @@ export function getServerJsonCookie<T>(
 export function setServerJsonCookie<T>(
   name: string,
   value: T,
-  cookieStore: Awaited<ReturnType<typeof import("next/headers").cookies>> & {
+  cookieStore: CookieStore & {
     set: (name: string, value: string, options?: any) => void;
   },
   options: CookieOptions = {},

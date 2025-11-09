@@ -11,6 +11,14 @@ import {
   createCheckpointVersion,
   copyProjectSecrets,
   warmUpDevServer,
+  deleteFreestyleRepository,
+  deleteNeonProject,
+  deleteAssistantUIThread,
+  getProjectVersionIds,
+  clearCurrentDevVersion,
+  deleteProjectSecrets,
+  deleteProjectVersions,
+  deleteProjectRecord,
 } from "@/lib/steps";
 import { Project } from "@/lib/db/schema";
 
@@ -72,16 +80,6 @@ export async function createManualCheckpoint(
 
 export async function deleteProject(project: Project) {
   "use workflow";
-  const {
-    deleteFreestyleRepository,
-    deleteNeonProject,
-    deleteAssistantUIThread,
-    getProjectVersionIds,
-    clearCurrentDevVersion,
-    deleteProjectSecrets,
-    deleteProjectVersions,
-    deleteProjectRecord,
-  } = await import("@/lib/steps");
 
   // Delete external resources in parallel
   await Promise.all([
