@@ -48,15 +48,16 @@ function getEnhancedErrorMessage(
 export async function POST(c: ContextWithMastra): Promise<Response> {
   const mastra = c.get("mastra");
   const runtimeContext = c.get("runtimeContext");
-  const { messages } = await c.req.json();
+  const { messages, projectId } = await c.req.json();
 
-  console.log(`[Codegen] Processing request with ${messages.length} messages`);
-
-  // Extract keyProvider from runtime context for error handling
   const modelSelection = runtimeContext.get("modelSelection") as
     | ModelSelectionContext
     | undefined;
   const keyProvider = modelSelection?.keyProvider;
+
+  console.log(
+    `[Codegen] Processing request with ${messages.length} messages, projectId: ${projectId}, model: ${modelSelection?.modelId}, keyProvider: ${keyProvider}`,
+  );
 
   const agent = mastra.getAgent("codegenAgent");
   const stream = await agent.stream(messages, {
@@ -64,8 +65,8 @@ export async function POST(c: ContextWithMastra): Promise<Response> {
     maxSteps: 50,
   });
 
-  // https://github.com/mastra-ai/mastra/issues/9613
   // Tee the stream to capture raw error details before transformation
+  // See: https://github.com/mastra-ai/mastra/issues/9613
   let capturedError: any = null;
   const [errorCaptureStream, transformStream] = stream.fullStream.tee();
 
@@ -81,7 +82,7 @@ export async function POST(c: ContextWithMastra): Promise<Response> {
         }
       }
     } catch (err) {
-      // Silent fail - this is just for error capture
+      // Error capture stream failed - continue with main stream
     } finally {
       reader.releaseLock();
     }
@@ -103,7 +104,6 @@ export async function POST(c: ContextWithMastra): Promise<Response> {
           const { done, value } = await reader.read();
           if (done) break;
 
-          // Throw on error chunks to trigger onError handler
           if (value.type === "error") {
             const error =
               capturedError || new Error(value.errorText || "Unknown error");
@@ -117,8 +117,7 @@ export async function POST(c: ContextWithMastra): Promise<Response> {
       }
     },
     onError: (error) => {
-      const err = error as Error;
-      console.error("[Codegen] Stream error:", err.message || error);
+      console.error("[Codegen] Stream error:", error);
       return getEnhancedErrorMessage(error, keyProvider);
     },
   });

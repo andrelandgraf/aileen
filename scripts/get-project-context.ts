@@ -7,6 +7,7 @@ import {
   projectSecretsTable,
 } from "../src/lib/db/schema";
 import { eq } from "drizzle-orm";
+import { decrypt } from "../src/lib/encryption";
 
 /**
  * Script to get project context for testing in Mastra playground
@@ -80,7 +81,9 @@ async function getProjectContext(projectId: string) {
           .limit(1);
 
         if (secrets && secrets.secrets) {
-          environmentVariables = secrets.secrets;
+          // Decrypt and parse the encrypted JSON string
+          const decryptedSecrets = decrypt(secrets.secrets);
+          environmentVariables = JSON.parse(decryptedSecrets);
           console.log(
             `🔐 Found ${Object.keys(environmentVariables).length} environment variables`,
           );

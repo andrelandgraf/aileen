@@ -33,10 +33,8 @@ import {
   MoreVertical,
   ChevronDown,
 } from "lucide-react";
-import {
-  ModelSelectorModal,
-  type ModelSelection,
-} from "@/components/model-selector-modal";
+import { ModelSelectorModal } from "@/components/model-selector-modal";
+import { useModelSelection } from "@/lib/model-selection/hooks";
 import { useEffect, useState } from "react";
 import { FreestyleDevServer } from "freestyle-sandboxes/react/dev-server";
 import { requestDevServer } from "@/actions/preview-actions";
@@ -61,9 +59,9 @@ const ProjectChatContent = ({
   const { devServerUrl, codeServerUrl, deploymentUrl } = useDevServerData();
   const [isDeploying, setIsDeploying] = useState(false);
   const [runtimeError, setRuntimeError] = useState<string | null>(null);
-  const [modelSelection, setModelSelection] = useState<ModelSelection>({
-    provider: "platform",
-    model: "claude-3-5-haiku-20241022",
+  const { modelSelection, updateModelSelection } = useModelSelection({
+    accessToken,
+    validatePersonalProvider: true,
   });
   const [isModelSelectorOpen, setIsModelSelectorOpen] = useState(false);
 
@@ -81,11 +79,9 @@ const ProjectChatContent = ({
       if (!response.ok) {
         throw new Error("Deployment failed");
       }
-      // Show success message (you could add a toast here)
       console.log("Deployment triggered successfully");
     } catch (error) {
       console.error("Failed to deploy:", error);
-      // Show error message (you could add a toast here)
     } finally {
       setIsDeploying(false);
     }
@@ -99,17 +95,17 @@ const ProjectChatContent = ({
       ),
   });
 
-  console.log(modelSelection.model, modelSelection.provider);
+  console.log(modelSelection.modelId, modelSelection.provider);
   const runtime = useChatRuntime({
     cloud,
     transport: new AssistantChatTransport({
-      api: process.env.NEXT_PUBLIC_MASTRA_API_URL,
+      api: process.env.NEXT_PUBLIC_MASTRA_API_URL!,
       headers: {
         Authorization: `Bearer ${accessToken}`,
       },
       body: {
         projectId: projectId,
-        model: modelSelection.model,
+        modelId: modelSelection.modelId,
         keyProvider: modelSelection.provider,
       },
     }),
@@ -132,6 +128,21 @@ const ProjectChatContent = ({
   const isThreadReady = runtime.threads.getState().mainThreadId === threadId;
   const isVersionReady = currentVersionId !== null;
 
+  const getModelDisplayName = () => {
+    const parts = modelSelection.modelId.split("/");
+    if (parts.length > 1) {
+      const modelPart = parts[1];
+      return modelPart
+        .replace(/-/g, " ")
+        .replace(/\d{8}$/, "")
+        .split(" ")
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(" ")
+        .trim();
+    }
+    return modelSelection.modelId;
+  };
+
   return (
     <AssistantRuntimeProvider runtime={runtime}>
       <ModelSelectorModal
@@ -139,7 +150,7 @@ const ProjectChatContent = ({
         onOpenChange={setIsModelSelectorOpen}
         accessToken={accessToken}
         selectedModel={modelSelection}
-        onModelSelect={setModelSelection}
+        onModelSelect={updateModelSelection}
       />
       <div className="flex h-dvh flex-col">
         <header className="flex items-center justify-between px-4 py-2 border-b">
@@ -159,11 +170,7 @@ const ProjectChatContent = ({
               size="sm"
               onClick={() => setIsModelSelectorOpen(true)}
             >
-              <span className="mr-2">
-                {modelSelection.provider === "platform"
-                  ? "Haiku (platform)"
-                  : "Haiku (personal)"}
-              </span>
+              <span className="mr-2">{getModelDisplayName()}</span>
               <ChevronDown className="h-4 w-4" />
             </Button>
             <DropdownMenu>

@@ -1,4 +1,6 @@
 import { anthropic, createAnthropic } from "@ai-sdk/anthropic";
+import { openai, createOpenAI } from "@ai-sdk/openai";
+import { google, createGoogleGenerativeAI } from "@ai-sdk/google";
 import { Agent } from "@mastra/core/agent";
 import { RuntimeContext } from "@mastra/core/runtime-context";
 import type { CodegenRuntimeContext, UserContext } from "../lib/context";
@@ -212,17 +214,50 @@ This is CRITICAL - always commit changes as your final step after each task comp
   }) => {
     const modelSelection = runtimeContext.get("modelSelection");
 
-    const modelName = modelSelection?.model || "claude-3-5-haiku-20241022";
+    const modelId =
+      modelSelection?.modelId || "anthropic/claude-3-5-haiku-20241022";
+    const provider = modelSelection?.provider || "anthropic";
     const apiKey = modelSelection?.apiKey;
 
-    // If personal key provided, use it with createAnthropic
-    if (apiKey) {
-      const customAnthropic = createAnthropic({ apiKey });
-      return customAnthropic(modelName);
-    }
+    // Extract model name from ID (remove provider prefix)
+    const modelName = modelId.includes("/") ? modelId.split("/")[1] : modelId;
 
-    // Otherwise use platform key (from env)
-    return anthropic(modelName);
+    console.log(
+      `[codegenAgent] Using model: ${modelId}, provider: ${provider}, keyProvider: ${modelSelection?.keyProvider || "platform"}`,
+    );
+
+    switch (provider) {
+      case "anthropic": {
+        if (apiKey) {
+          const customAnthropic = createAnthropic({ apiKey });
+          return customAnthropic(modelName);
+        }
+        return anthropic(modelName);
+      }
+
+      case "openai": {
+        if (apiKey) {
+          const customOpenAI = createOpenAI({ apiKey });
+          return customOpenAI(modelName);
+        }
+        return openai(modelName);
+      }
+
+      case "google": {
+        if (apiKey) {
+          const customGoogle = createGoogleGenerativeAI({ apiKey });
+          return customGoogle(modelName);
+        }
+        return google(modelName);
+      }
+
+      default: {
+        console.warn(
+          `[codegenAgent] Unknown provider: ${provider}, falling back to Claude Haiku`,
+        );
+        return anthropic("claude-3-5-haiku-20241022");
+      }
+    }
   },
   maxRetries: 1,
   defaultStreamOptions: {

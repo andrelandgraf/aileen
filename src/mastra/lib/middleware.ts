@@ -5,6 +5,7 @@ import { eq, and } from "drizzle-orm";
 import type { Context, Next } from "hono";
 import type { UserContext, ModelSelectionContext } from "./context";
 import { getDecryptedApiKey } from "@/app/api/v1/user/ai-keys/route";
+import { decrypt } from "@/lib/encryption";
 
 export async function auth(c: Context, next: Next) {
   try {
@@ -106,25 +107,51 @@ export async function auth(c: Context, next: Next) {
       console.error("[Mastra Auth] No current dev secrets found");
       return c.json({ error: "No current dev secrets found" }, 400);
     }
-    console.log("[Mastra Auth] Current dev secrets found:", currentDevSecrets);
-    runtimeContext.set("environmentVariables", currentDevSecrets.secrets);
+    console.log("[Mastra Auth] Current dev secrets found");
 
-    // Parse body for model selection
-    const model = body.model || "claude-3-5-haiku-20241022";
+    // Decrypt and parse the secrets before setting them in runtime context
+    console.log("[Mastra Auth] Decrypting secrets...");
+    const decryptedJson = decrypt(currentDevSecrets.secrets);
+    const secretsData: Record<string, string> = JSON.parse(decryptedJson);
+    console.log(
+      `[Mastra Auth] Found ${Object.keys(secretsData).length} environment variables`,
+    );
+    runtimeContext.set("environmentVariables", secretsData);
+
+    // Parse model selection from request body
+    const modelId = body.modelId || "anthropic/claude-3-5-haiku-20241022";
     const keyProvider = body.keyProvider || "platform";
-    console.log("[Mastra Auth] Model from body:", model);
+    console.log("[Mastra Auth] Model ID from body:", modelId);
     console.log("[Mastra Auth] Key provider from body:", keyProvider);
 
+    // Parse provider from modelId (e.g., "anthropic/claude-3-5-haiku" -> "anthropic")
+    const provider = modelId.split("/")[0] as "anthropic" | "openai" | "google";
+
     // If using personal key, fetch and decrypt it from database
+    // Google is not supported for personal keys yet
     let apiKey: string | undefined;
     if (keyProvider === "personal") {
-      const decryptedKey = await getDecryptedApiKey(user.id, "anthropic");
-      if (!decryptedKey) {
-        console.error("[Mastra Auth] Personal API key not found");
+      if (provider === "google") {
+        console.error(
+          `[Mastra Auth] Personal API keys for Google are not supported yet`,
+        );
         return c.json(
           {
-            error:
-              "Personal API key not found. Please add your Anthropic API key in settings.",
+            error: `Personal API keys for Google are not supported yet. Please use platform keys or select a different provider.`,
+          },
+          { status: 400 },
+        );
+      }
+
+      const supportedProvider = provider as "anthropic" | "openai";
+      const decryptedKey = await getDecryptedApiKey(user.id, supportedProvider);
+      if (!decryptedKey) {
+        console.error(
+          `[Mastra Auth] Personal API key not found for ${provider}`,
+        );
+        return c.json(
+          {
+            error: `Personal API key not found for ${provider}. Please add your ${provider} API key in settings.`,
           },
           { status: 400 },
         );
@@ -134,14 +161,15 @@ export async function auth(c: Context, next: Next) {
 
     // Add model selection to runtime context
     const modelSelection: ModelSelectionContext = {
-      model,
+      modelId,
+      provider,
       keyProvider: keyProvider as "platform" | "personal",
       apiKey, // Only set if using personal key
     };
     runtimeContext.set("modelSelection", modelSelection);
 
     console.log(
-      `[Mastra Auth] Model selection configured: ${model}, provider: ${keyProvider}`,
+      `[Mastra Auth] Model selection configured: ${modelId}, provider: ${provider}, keyProvider: ${keyProvider}`,
     );
 
     await next();

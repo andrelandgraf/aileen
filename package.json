@@ -19,7 +19,9 @@
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^2.0.31",
+    "@ai-sdk/google": "^2.0.29",
     "@ai-sdk/mcp": "^0.0.4",
+    "@ai-sdk/openai": "^2.0.64",
     "@assistant-ui/react": "^0.11.35",
     "@assistant-ui/react-ai-sdk": "^1.1.8",
     "@assistant-ui/react-markdown": "^0.11.2",

@@ -96,18 +96,50 @@ export function decrypt(encryptedData: string): string {
   }
 
   const key = getEncryptionKey();
-  const combined = Buffer.from(encryptedData, "base64");
+  let combined: Buffer;
+
+  try {
+    combined = Buffer.from(encryptedData, "base64");
+  } catch (error) {
+    throw new Error(
+      `Failed to decode base64 encrypted data: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+
+  // Validate minimum length (iv + authTag)
+  const minLength = IV_LENGTH + AUTH_TAG_LENGTH;
+  if (combined.length < minLength) {
+    throw new Error(
+      `Encrypted data too short: expected at least ${minLength} bytes, got ${combined.length}. ` +
+        "This may indicate corrupted or invalid encrypted data.",
+    );
+  }
 
   // Extract components
   const iv = combined.subarray(0, IV_LENGTH);
   const authTag = combined.subarray(IV_LENGTH, IV_LENGTH + AUTH_TAG_LENGTH);
   const encrypted = combined.subarray(IV_LENGTH + AUTH_TAG_LENGTH);
 
-  const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
-  decipher.setAuthTag(authTag);
+  let decipher: crypto.DecipherGCM;
+  try {
+    decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
+    decipher.setAuthTag(authTag);
+  } catch (error) {
+    throw new Error(
+      `Failed to create decipher: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
 
-  let decrypted = decipher.update(encrypted);
-  decrypted = Buffer.concat([decrypted, decipher.final()]);
+  let decrypted: Buffer;
+  try {
+    decrypted = decipher.update(encrypted);
+    decrypted = Buffer.concat([decrypted, decipher.final()]);
+  } catch (error) {
+    throw new Error(
+      `Decryption failed: ${error instanceof Error ? error.message : String(error)}. ` +
+        "This may indicate incorrect encryption key, corrupted data, or tampered data.",
+    );
+  }
 
   return decrypted.toString("utf8");
 }

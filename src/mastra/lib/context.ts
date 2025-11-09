@@ -12,7 +12,8 @@ export type UserContext = {
  * Model selection context for AI model configuration
  */
 export type ModelSelectionContext = {
-  model: string;
+  modelId: string; // Full model ID from models.dev (e.g., "anthropic/claude-3-5-haiku-20241022")
+  provider: "anthropic" | "openai" | "google";
   keyProvider: "platform" | "personal";
   apiKey?: string;
 };

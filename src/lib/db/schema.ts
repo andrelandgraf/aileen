@@ -15,6 +15,7 @@ export const aiProviderEnum = pgEnum("ai_provider", [
   "anthropic",
   "openai",
   "openrouter",
+  "google",
 ]);
 
 export const projectsTable = pgTable("projects", {

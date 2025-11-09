@@ -6,6 +6,7 @@ import { eq, and } from "drizzle-orm";
 import { FreestyleSandboxes } from "freestyle-sandboxes";
 import { neonService } from "@/lib/neon";
 import { generateDeploymentUrl } from "@/lib/freestyle";
+import { decrypt } from "@/lib/encryption";
 
 interface RouteParams {
   params: Promise<{
@@ -96,6 +97,10 @@ export async function POST(req: Request, { params }: RouteParams) {
       );
     }
 
+    // Decrypt and parse secrets
+    const decryptedJson = decrypt(currentDevSecrets.secrets);
+    const secretsData: Record<string, string> = JSON.parse(decryptedJson);
+
     // Trigger deployment (async - don't await)
     freestyle
       .deployWeb(
@@ -105,9 +110,9 @@ export async function POST(req: Request, { params }: RouteParams) {
         },
         {
           domains: [customDomain],
-          envVars: currentDevSecrets.secrets,
+          envVars: secretsData,
           build: {
-            envVars: currentDevSecrets.secrets,
+            envVars: secretsData,
           },
         },
       )
@@ -171,8 +176,6 @@ export async function GET(req: Request, { params }: RouteParams) {
 
     console.log("[Deploy API] Deployment URL:", deploymentUrl);
 
-    // Return deployment info
-    // Note: Deployment status tracking could be added in the future
     return NextResponse.json({
       domain: customDomain,
       url: deploymentUrl,

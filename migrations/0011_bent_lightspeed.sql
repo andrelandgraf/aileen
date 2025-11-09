@@ -1,0 +1,1 @@
+ALTER TYPE "public"."ai_provider" ADD VALUE 'google';
