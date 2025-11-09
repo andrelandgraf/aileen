@@ -41,18 +41,26 @@ export function ProjectsList({ projects }: ProjectsListProps) {
     null,
   );
   const [isDeleting, setIsDeleting] = useState(false);
+  const [deletedProjectIds, setDeletedProjectIds] = useState<Set<string>>(
+    new Set(),
+  );
   const router = useRouter();
 
   const filteredProjects = useMemo(() => {
-    if (!search) return projects;
+    // Filter out deleted projects first
+    const activeProjects = projects.filter(
+      (project) => !deletedProjectIds.has(project.id),
+    );
+
+    if (!search) return activeProjects;
 
     const searchLower = search.toLowerCase();
-    return projects.filter(
+    return activeProjects.filter(
       (project) =>
         project.name.toLowerCase().includes(searchLower) ||
         project.repoId.toLowerCase().includes(searchLower),
     );
-  }, [projects, search]);
+  }, [projects, search, deletedProjectIds]);
 
   const handleDelete = async () => {
     if (!deletingProject) return;
@@ -67,8 +75,13 @@ export function ProjectsList({ projects }: ProjectsListProps) {
         throw new Error("Failed to delete project");
       }
 
-      // Close dialog and refresh
+      // Optimistically hide the project
+      setDeletedProjectIds((prev) => new Set(prev).add(deletingProject.id));
+
+      // Close dialog
       setDeletingProject(null);
+
+      // Refresh in the background to sync with server state
       router.refresh();
     } catch (error) {
       console.error("Error deleting project:", error);

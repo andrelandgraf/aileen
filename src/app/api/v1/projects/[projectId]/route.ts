@@ -1,15 +1,10 @@
 import { NextResponse } from "next/server";
 import { stackServerApp } from "@/lib/stack/server";
 import { db } from "@/lib/db/db";
-import {
-  projectsTable,
-  projectVersionsTable,
-  projectSecretsTable,
-} from "@/lib/db/schema";
-import { eq, and, inArray } from "drizzle-orm";
-import { FreestyleSandboxes } from "freestyle-sandboxes";
-import { deleteAssistantThread } from "@/lib/assistant-ui";
-import { neonService } from "@/lib/neon";
+import { projectsTable } from "@/lib/db/schema";
+import { eq, and } from "drizzle-orm";
+import { start } from "workflow/api";
+import { deleteProject } from "@/lib/workflows";
 
 interface RouteParams {
   params: Promise<{
@@ -42,93 +37,11 @@ export async function DELETE(req: Request, { params }: RouteParams) {
       return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
 
-    console.log("[DELETE Project] Deleting project:", project.name);
-    console.log("[DELETE Project] RepoId:", project.repoId);
-    console.log("[DELETE Project] NeonProjectId:", project.neonProjectId);
-    console.log("[DELETE Project] ThreadId:", project.threadId);
-
-    // Initialize Freestyle
-    const freestyle = new FreestyleSandboxes({
-      apiKey: process.env.FREESTYLE_API_KEY!,
-    });
-
-    // Delete Freestyle repository
-    console.log("[DELETE Project] Deleting Freestyle repository...");
-    try {
-      await freestyle.deleteGitRepository({ repoId: project.repoId });
-      console.log("[DELETE Project] Freestyle repository deleted successfully");
-    } catch (error) {
-      console.error("[DELETE Project] Error deleting Freestyle repo:", error);
-      // Continue with deletion even if Freestyle fails
-    }
-
-    // Delete Neon project
-    console.log("[DELETE Project] Deleting Neon project...");
-    try {
-      await neonService.deleteProject(project.neonProjectId);
-      console.log("[DELETE Project] Neon project deleted successfully");
-    } catch (error) {
-      console.error("[DELETE Project] Error deleting Neon project:", error);
-      // Continue with deletion even if Neon fails
-    }
-
-    // Delete Assistant UI thread
-    console.log("[DELETE Project] Deleting Assistant UI thread...");
-    try {
-      await deleteAssistantThread(user.id, project.threadId);
-      console.log("[DELETE Project] Assistant UI thread deleted successfully");
-    } catch (error) {
-      console.error(
-        "[DELETE Project] Error deleting Assistant UI thread:",
-        error,
-      );
-      // Continue with deletion even if Assistant UI fails
-    }
-
-    // First, get all version IDs for this project
-    console.log("[DELETE Project] Fetching project versions...");
-    const versions = await db
-      .select({ id: projectVersionsTable.id })
-      .from(projectVersionsTable)
-      .where(eq(projectVersionsTable.projectId, projectId));
-
-    const versionIds = versions.map((v) => v.id);
-    console.log(
-      `[DELETE Project] Found ${versionIds.length} versions to delete`,
-    );
-
-    // Clear the currentDevVersionId reference first to avoid FK constraint violation
-    console.log("[DELETE Project] Clearing currentDevVersionId reference...");
-    await db
-      .update(projectsTable)
-      .set({ currentDevVersionId: null })
-      .where(eq(projectsTable.id, projectId));
-    console.log("[DELETE Project] currentDevVersionId cleared successfully");
-
-    // Delete all secrets for these versions
-    if (versionIds.length > 0) {
-      console.log("[DELETE Project] Deleting project secrets from database...");
-      await db
-        .delete(projectSecretsTable)
-        .where(inArray(projectSecretsTable.projectVersionId, versionIds));
-      console.log("[DELETE Project] Project secrets deleted successfully");
-    }
-
-    // Delete all project versions from database
-    console.log("[DELETE Project] Deleting project versions from database...");
-    await db
-      .delete(projectVersionsTable)
-      .where(eq(projectVersionsTable.projectId, projectId));
-    console.log("[DELETE Project] Project versions deleted successfully");
-
-    // Delete project from database
-    console.log("[DELETE Project] Deleting project from database...");
-    await db.delete(projectsTable).where(eq(projectsTable.id, projectId));
-
-    console.log("[DELETE Project] Project deleted successfully");
+    console.log("[DELETE Project] Triggering workflow for project deletion...");
+    await start(deleteProject, [project]);
 
     return NextResponse.json(
-      { message: "Project deleted successfully" },
+      { message: "Project deletion started" },
       { status: 200 },
     );
   } catch (error) {

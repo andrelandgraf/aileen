@@ -69,3 +69,42 @@ export async function createManualCheckpoint(
 
   return { success: true, versionId: checkpointVersion.id };
 }
+
+export async function deleteProject(project: Project) {
+  "use workflow";
+  const {
+    deleteFreestyleRepository,
+    deleteNeonProject,
+    deleteAssistantUIThread,
+    getProjectVersionIds,
+    clearCurrentDevVersion,
+    deleteProjectSecrets,
+    deleteProjectVersions,
+    deleteProjectRecord,
+  } = await import("@/lib/steps");
+
+  // Delete external resources in parallel
+  await Promise.all([
+    deleteFreestyleRepository(project.repoId),
+    deleteNeonProject(project.neonProjectId),
+    deleteAssistantUIThread(project.userId, project.threadId),
+  ]);
+
+  // Get version IDs to delete secrets
+  const versionIds = await getProjectVersionIds(project.id);
+
+  // Clear FK reference before deleting versions
+  await clearCurrentDevVersion(project.id);
+
+  // Delete secrets and versions
+  if (versionIds.length > 0) {
+    await deleteProjectSecrets(versionIds);
+  }
+
+  await deleteProjectVersions(project.id);
+
+  // Finally delete the project record
+  await deleteProjectRecord(project.id);
+
+  return { success: true };
+}

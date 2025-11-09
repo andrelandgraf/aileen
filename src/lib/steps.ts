@@ -187,3 +187,81 @@ export async function copyProjectSecrets(
   });
   console.log("[Projects] Secrets copied and encrypted successfully");
 }
+
+export async function deleteFreestyleRepository(repoId: string) {
+  "use step";
+  console.log("[DELETE Project] Deleting Freestyle repository:", repoId);
+  const { FreestyleSandboxes } = await import("freestyle-sandboxes");
+  const freestyle = new FreestyleSandboxes({
+    apiKey: process.env.FREESTYLE_API_KEY!,
+  });
+  await freestyle.deleteGitRepository({ repoId });
+  console.log("[DELETE Project] Freestyle repository deleted successfully");
+}
+
+export async function deleteNeonProject(neonProjectId: string) {
+  "use step";
+  console.log("[DELETE Project] Deleting Neon project:", neonProjectId);
+  await neonService.deleteProject(neonProjectId);
+  console.log("[DELETE Project] Neon project deleted successfully");
+}
+
+export async function deleteAssistantUIThread(
+  userId: string,
+  threadId: string,
+) {
+  "use step";
+  console.log("[DELETE Project] Deleting Assistant UI thread:", threadId);
+  const { deleteAssistantThread } = await import("@/lib/assistant-ui");
+  await deleteAssistantThread(userId, threadId);
+  console.log("[DELETE Project] Assistant UI thread deleted successfully");
+}
+
+export async function getProjectVersionIds(projectId: string) {
+  "use step";
+  console.log("[DELETE Project] Fetching project versions...");
+  const versions = await db
+    .select({ id: projectVersionsTable.id })
+    .from(projectVersionsTable)
+    .where(eq(projectVersionsTable.projectId, projectId));
+
+  const versionIds = versions.map((v) => v.id);
+  console.log(`[DELETE Project] Found ${versionIds.length} versions to delete`);
+  return versionIds;
+}
+
+export async function clearCurrentDevVersion(projectId: string) {
+  "use step";
+  console.log("[DELETE Project] Clearing currentDevVersionId reference...");
+  await db
+    .update(projectsTable)
+    .set({ currentDevVersionId: null })
+    .where(eq(projectsTable.id, projectId));
+  console.log("[DELETE Project] currentDevVersionId cleared successfully");
+}
+
+export async function deleteProjectSecrets(versionIds: string[]) {
+  "use step";
+  console.log("[DELETE Project] Deleting project secrets from database...");
+  const { inArray } = await import("drizzle-orm");
+  await db
+    .delete(projectSecretsTable)
+    .where(inArray(projectSecretsTable.projectVersionId, versionIds));
+  console.log("[DELETE Project] Project secrets deleted successfully");
+}
+
+export async function deleteProjectVersions(projectId: string) {
+  "use step";
+  console.log("[DELETE Project] Deleting project versions from database...");
+  await db
+    .delete(projectVersionsTable)
+    .where(eq(projectVersionsTable.projectId, projectId));
+  console.log("[DELETE Project] Project versions deleted successfully");
+}
+
+export async function deleteProjectRecord(projectId: string) {
+  "use step";
+  console.log("[DELETE Project] Deleting project from database...");
+  await db.delete(projectsTable).where(eq(projectsTable.id, projectId));
+  console.log("[DELETE Project] Project deleted successfully");
+}
