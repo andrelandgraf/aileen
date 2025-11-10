@@ -5,7 +5,7 @@ import { projectsTable, projectSecretsTable } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { FreestyleSandboxes } from "freestyle-sandboxes";
 import { neonService } from "@/lib/neon";
-import { generateDeploymentUrl } from "@/lib/freestyle";
+import { freestyleService } from "@/lib/freestyle";
 import { decrypt } from "@/lib/encryption";
 import { mainConfig } from "@/lib/config";
 
@@ -53,10 +53,11 @@ export async function POST(req: Request, { params }: RouteParams) {
     }
 
     // Generate deployment URL
-    const { domain: customDomain, url: deploymentUrl } = generateDeploymentUrl(
-      project.name,
-      user.displayName || user.id,
-    );
+    const { domain: customDomain, url: deploymentUrl } =
+      freestyleService.generateDeploymentUrl(
+        project.name,
+        user.displayName || user.id,
+      );
 
     console.log("[Deploy API] Deploying to domain:", customDomain);
 
@@ -170,10 +171,11 @@ export async function GET(req: Request, { params }: RouteParams) {
     }
 
     // Generate deployment URL
-    const { domain: customDomain, url: deploymentUrl } = generateDeploymentUrl(
-      project.name,
-      user.displayName || user.id,
-    );
+    const { domain: customDomain, url: deploymentUrl } =
+      freestyleService.generateDeploymentUrl(
+        project.name,
+        user.displayName || user.id,
+      );
 
     console.log("[Deploy API] Deployment URL:", deploymentUrl);
 

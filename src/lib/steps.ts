@@ -5,13 +5,12 @@ import {
   projectSecretsTable,
   Project,
 } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
-import { getLatestCommit } from "@/lib/freestyle";
+import { eq, inArray } from "drizzle-orm";
+import { freestyleService } from "@/lib/freestyle";
 import { neonService } from "@/lib/neon";
 import { requestDevServer } from "@/lib/dev-server";
 import { encrypt, decrypt } from "@/lib/encryption";
 import { deleteAssistantThread } from "@/lib/assistant-ui";
-import { mainConfig } from "./config";
 
 export async function getNeonProductionBranch(neonProjectId: string) {
   "use step";
@@ -47,7 +46,7 @@ export async function getDatabaseConnectionUri(neonProjectId: string) {
 export async function getLatestCommitHash(repoId: string) {
   "use step";
   console.log("[Projects] Getting latest commit hash...");
-  const commitHash = await getLatestCommit(repoId);
+  const commitHash = await freestyleService.getLatestCommit(repoId);
   console.log("[Projects] Latest commit hash:", commitHash);
   return commitHash;
 }
@@ -193,11 +192,7 @@ export async function copyProjectSecrets(
 export async function deleteFreestyleRepository(repoId: string) {
   "use step";
   console.log("[DELETE Project] Deleting Freestyle repository:", repoId);
-  const { FreestyleSandboxes } = await import("freestyle-sandboxes");
-  const freestyle = new FreestyleSandboxes({
-    apiKey: mainConfig.freestyle.apiKey,
-  });
-  await freestyle.deleteGitRepository({ repoId });
+  await freestyleService.deleteRepo(repoId);
   console.log("[DELETE Project] Freestyle repository deleted successfully");
 }
 
@@ -244,7 +239,6 @@ export async function clearCurrentDevVersion(projectId: string) {
 export async function deleteProjectSecrets(versionIds: string[]) {
   "use step";
   console.log("[DELETE Project] Deleting project secrets from database...");
-  const { inArray } = await import("drizzle-orm");
   await db
     .delete(projectSecretsTable)
     .where(inArray(projectSecretsTable.projectVersionId, versionIds));

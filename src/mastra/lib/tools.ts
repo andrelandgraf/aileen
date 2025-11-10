@@ -1,6 +1,6 @@
 import { RuntimeContext } from "@mastra/core/runtime-context";
 import { createTool } from "@mastra/core/tools";
-import { getLatestCommit } from "@/lib/freestyle";
+import { freestyleService } from "@/lib/freestyle";
 import { z } from "zod";
 import { neonMcpClient } from "../mcp/neon";
 import { context7McpClient } from "../mcp/context7";
@@ -270,7 +270,7 @@ export async function createFreestyleTools(
 
         // Get the commit hash via API
         console.log(`[freestyle-commit-and-push] Getting commit hash...`);
-        const commitHash = await getLatestCommit(repoId);
+        const commitHash = await freestyleService.getLatestCommit(repoId);
         console.log(`[freestyle-commit-and-push] Commit hash: ${commitHash}`);
 
         // Create a Neon snapshot

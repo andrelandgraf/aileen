@@ -5,7 +5,7 @@ import { db } from "@/lib/db/db";
 import { projectsTable } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { requestDevServer as requestDevServerService } from "@/lib/dev-server";
-import { generateDeploymentUrl } from "@/lib/freestyle";
+import { freestyleService } from "@/lib/freestyle";
 
 export async function requestDevServer({ projectId }: { projectId: string }) {
   // Verify user authentication
@@ -68,7 +68,7 @@ export async function getDevServerUrls({ projectId }: { projectId: string }) {
   );
 
   // Generate deployment URL
-  const { url: deploymentUrl } = generateDeploymentUrl(
+  const { url: deploymentUrl } = freestyleService.generateDeploymentUrl(
     project.name,
     user.displayName || user.id,
   );

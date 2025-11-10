@@ -101,6 +101,12 @@ export class FreestyleService {
     }
   }
 
+  async deleteRepo(repoId: string): Promise<void> {
+    console.log("[Freestyle] Deleting repo:", repoId);
+    await this.freestyle.deleteGitRepository({ repoId });
+    console.log("[Freestyle] Repo deleted successfully");
+  }
+
   async initializeRawDevServer(repoId: string): Promise<void> {
     try {
       this.freestyle.requestDevServer({
@@ -234,122 +240,119 @@ export class FreestyleService {
       );
     }
   }
+
+  /**
+   * Gets the latest commit hash from a Freestyle repository using the Git API
+   * @param repoId - The repository ID
+   * @param branch - Optional branch name (defaults to HEAD/default branch)
+   * @returns Promise resolving to the latest commit hash (SHA)
+   */
+  async getLatestCommit(repoId: string, branch?: string): Promise<string> {
+    console.log("[Freestyle] Getting latest commit hash via API", {
+      repoId,
+      branch,
+    });
+
+    try {
+      const response = await this.getCommits({
+        repoId,
+        branch,
+        limit: 1,
+        offset: 0,
+      });
+
+      if (!response.commits || response.commits.length === 0) {
+        throw new Error("No commits found in repository");
+      }
+
+      const commitHash = response.commits[0].sha;
+      console.log("[Freestyle] Latest commit hash:", commitHash);
+
+      return commitHash;
+    } catch (error) {
+      console.error("[Freestyle] Error getting latest commit:", error);
+      throw new Error(
+        `Failed to get latest commit: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+
+  /**
+   * Sets the main branch to a specific commit
+   * @param process - The process object from FreestyleDevServer
+   * @param commitHash - The commit hash to reset to
+   */
+  async setMainBranchToCommit(
+    process: FreestyleDevServer["process"],
+    commitHash: string,
+  ): Promise<void> {
+    console.log("[Freestyle] Setting main branch to commit:", commitHash);
+
+    try {
+      // Reset main branch to the specified commit
+      console.log("[Freestyle] Resetting main branch to commit:", commitHash);
+      const resetResult = await process.exec(`git reset --hard ${commitHash}`);
+
+      if (resetResult.stderr && resetResult.stderr.length > 0) {
+        console.warn(
+          `[Freestyle] git reset stderr: ${resetResult.stderr.join("\n")}`,
+        );
+      }
+
+      // Force push the changes
+      console.log("[Freestyle] Force pushing changes...");
+      const pushResult = await process.exec("git push --force origin main");
+
+      if (pushResult.stderr && pushResult.stderr.length > 0) {
+        console.warn(
+          `[Freestyle] git push stderr: ${pushResult.stderr.join("\n")}`,
+        );
+      }
+
+      console.log(
+        "[Freestyle] Successfully set main branch to commit:",
+        commitHash,
+      );
+    } catch (error) {
+      console.error("[Freestyle] Error setting main branch to commit:", error);
+      throw new Error(
+        `Failed to set main branch to commit: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+
+  /**
+   * Sanitizes a string for use in a domain name
+   * @param str - The string to sanitize
+   * @returns A sanitized string safe for domain names
+   */
+  private sanitizeDomain(str: string): string {
+    return str
+      .toLowerCase()
+      .replace(/[^a-z0-9-]/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "");
+  }
+
+  /**
+   * Generates a deployment URL for a project
+   * @param projectName - The name of the project
+   * @param userIdentifier - The user's display name or ID
+   * @returns An object containing the domain and full URL
+   */
+  generateDeploymentUrl(
+    projectName: string,
+    userIdentifier: string,
+  ): { domain: string; url: string } {
+    const projectSlug = this.sanitizeDomain(projectName);
+    const userSlug = this.sanitizeDomain(userIdentifier);
+    const domain = `${projectSlug}-${userSlug}.style.dev`;
+    const url = `https://${domain}`;
+
+    return { domain, url };
+  }
 }
 
 export const freestyleService = new FreestyleService(
   mainConfig.freestyle.apiKey,
 );
-
-/**
- * Gets the latest commit hash from a Freestyle repository using the Git API
- * @param repoId - The repository ID
- * @param branch - Optional branch name (defaults to HEAD/default branch)
- * @returns Promise resolving to the latest commit hash (SHA)
- */
-export async function getLatestCommit(
-  repoId: string,
-  branch?: string,
-): Promise<string> {
-  console.log("[Freestyle] Getting latest commit hash via API", {
-    repoId,
-    branch,
-  });
-
-  try {
-    const response = await freestyleService.getCommits({
-      repoId,
-      branch,
-      limit: 1,
-      offset: 0,
-    });
-
-    if (!response.commits || response.commits.length === 0) {
-      throw new Error("No commits found in repository");
-    }
-
-    const commitHash = response.commits[0].sha;
-    console.log("[Freestyle] Latest commit hash:", commitHash);
-
-    return commitHash;
-  } catch (error) {
-    console.error("[Freestyle] Error getting latest commit:", error);
-    throw new Error(
-      `Failed to get latest commit: ${error instanceof Error ? error.message : String(error)}`,
-    );
-  }
-}
-
-/**
- * Sets the main branch to a specific commit
- * @param process - The process object from FreestyleDevServer
- * @param commitHash - The commit hash to reset to
- */
-export async function setMainBranchToCommit(
-  process: FreestyleDevServer["process"],
-  commitHash: string,
-): Promise<void> {
-  console.log("[Freestyle] Setting main branch to commit:", commitHash);
-
-  try {
-    // Reset main branch to the specified commit
-    console.log("[Freestyle] Resetting main branch to commit:", commitHash);
-    const resetResult = await process.exec(`git reset --hard ${commitHash}`);
-
-    if (resetResult.stderr && resetResult.stderr.length > 0) {
-      console.warn(
-        `[Freestyle] git reset stderr: ${resetResult.stderr.join("\n")}`,
-      );
-    }
-
-    // Force push the changes
-    console.log("[Freestyle] Force pushing changes...");
-    const pushResult = await process.exec("git push --force origin main");
-
-    if (pushResult.stderr && pushResult.stderr.length > 0) {
-      console.warn(
-        `[Freestyle] git push stderr: ${pushResult.stderr.join("\n")}`,
-      );
-    }
-
-    console.log(
-      "[Freestyle] Successfully set main branch to commit:",
-      commitHash,
-    );
-  } catch (error) {
-    console.error("[Freestyle] Error setting main branch to commit:", error);
-    throw new Error(
-      `Failed to set main branch to commit: ${error instanceof Error ? error.message : String(error)}`,
-    );
-  }
-}
-
-/**
- * Sanitizes a string for use in a domain name
- * @param str - The string to sanitize
- * @returns A sanitized string safe for domain names
- */
-function sanitizeDomain(str: string): string {
-  return str
-    .toLowerCase()
-    .replace(/[^a-z0-9-]/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "");
-}
-
-/**
- * Generates a deployment URL for a project
- * @param projectName - The name of the project
- * @param userIdentifier - The user's display name or ID
- * @returns An object containing the domain and full URL
- */
-export function generateDeploymentUrl(
-  projectName: string,
-  userIdentifier: string,
-): { domain: string; url: string } {
-  const projectSlug = sanitizeDomain(projectName);
-  const userSlug = sanitizeDomain(userIdentifier);
-  const domain = `${projectSlug}-${userSlug}.style.dev`;
-  const url = `https://${domain}`;
-
-  return { domain, url };
-}

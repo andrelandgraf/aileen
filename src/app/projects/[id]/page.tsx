@@ -4,8 +4,6 @@ import { db } from "@/lib/db/db";
 import { projectsTable } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { ProjectChat } from "@/components/project-chat";
-import { generateDeploymentUrl } from "@/lib/freestyle";
-import { requestDevServer } from "@/lib/dev-server";
 
 interface ProjectPageProps {
   params: Promise<{

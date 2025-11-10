@@ -7,7 +7,7 @@ import {
   projectSecretsTable,
 } from "@/lib/db/schema";
 import { eq, and, desc } from "drizzle-orm";
-import { setMainBranchToCommit } from "@/lib/freestyle";
+import { freestyleService } from "@/lib/freestyle";
 import { neonService } from "@/lib/neon";
 import { requestDevServer } from "@/lib/dev-server";
 import { decrypt } from "@/lib/encryption";
@@ -161,7 +161,7 @@ export async function POST(req: Request, { params }: RouteParams) {
       "[POST Restore Version] Resetting Git to commit:",
       version.gitCommitHash,
     );
-    await setMainBranchToCommit(
+    await freestyleService.setMainBranchToCommit(
       devServerResponse.process,
       version.gitCommitHash,
     );
