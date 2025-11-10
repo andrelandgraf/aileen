@@ -14,6 +14,7 @@ import {
   useProjectData,
 } from "@/components/project-context";
 import { useDevServerData } from "@/components/dev-server-context";
+import { DevServerLogs } from "@/components/dev-server-logs";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -32,11 +33,18 @@ import {
   ArrowLeft,
   MoreVertical,
   ChevronDown,
+  RotateCcw,
 } from "lucide-react";
 import { ModelSelectorModal } from "@/components/model-selector-modal";
 import { useModelSelection } from "@/lib/model-selection/hooks";
 import { useEffect, useState } from "react";
 import { FreestyleDevServer } from "freestyle-sandboxes/react/dev-server";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 import { requestDevServer } from "@/actions/preview-actions";
 import Link from "next/link";
 
@@ -56,7 +64,12 @@ const ProjectChatContent = ({
   accessToken,
 }: ProjectChatProps) => {
   const { currentVersionId } = useProjectData();
-  const { devServerUrl, codeServerUrl, deploymentUrl } = useDevServerData();
+  const {
+    devServerUrl,
+    codeServerUrl,
+    deploymentUrl,
+    refreshUrls,
+  } = useDevServerData();
   const [isDeploying, setIsDeploying] = useState(false);
   const [runtimeError, setRuntimeError] = useState<string | null>(null);
   const { modelSelection, updateModelSelection } = useModelSelection({
@@ -64,10 +77,41 @@ const ProjectChatContent = ({
     validatePersonalProvider: true,
   });
   const [isModelSelectorOpen, setIsModelSelectorOpen] = useState(false);
+  const [isRestartingDevServer, setIsRestartingDevServer] = useState(false);
+  const [activeDevServerTab, setActiveDevServerTab] =
+    useState<"preview" | "logs">("preview");
 
   // Wrap the action to include projectId
   const wrappedRequestDevServer = async (args: { repoId: string }) => {
     return await requestDevServer({ projectId });
+  };
+
+  const handleRestartDevServer = async () => {
+    if (isRestartingDevServer) {
+      return;
+    }
+
+    setIsRestartingDevServer(true);
+    try {
+      const response = await fetch("/api/v1/dev-servers/restart", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ projectId }),
+      });
+
+      if (!response.ok) {
+        const message = await response.text();
+        throw new Error(message || "Failed to restart dev server");
+      }
+
+      await refreshUrls();
+    } catch (error) {
+      console.error("[ProjectChat] Failed to restart dev server:", error);
+    } finally {
+      setIsRestartingDevServer(false);
+    }
   };
 
   const handleDeploy = async () => {
@@ -199,6 +243,17 @@ const ProjectChatContent = ({
                       <span>View in VS Code</span>
                     </DropdownMenuItem>
                   )}
+                  <DropdownMenuItem
+                    onClick={handleRestartDevServer}
+                    disabled={isRestartingDevServer}
+                  >
+                    <RotateCcw className="h-4 w-4 mr-2" />
+                    <span>
+                      {isRestartingDevServer
+                        ? "Restarting Dev Server..."
+                        : "Restart Dev Server"}
+                    </span>
+                  </DropdownMenuItem>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel>Production</DropdownMenuLabel>
@@ -261,42 +316,72 @@ const ProjectChatContent = ({
             </div>
           </div>
         )}
-        <div className="flex flex-1 overflow-hidden">
-          {/* Chat side */}
-          <div className="flex-1 overflow-hidden border-r">
-            {isThreadReady && isVersionReady ? (
-              <Thread />
-            ) : (
-              <div className="flex flex-col h-full p-4 gap-4">
-                <Skeleton className="h-12 w-full" />
-                <Skeleton className="h-20 w-3/4" />
-                <Skeleton className="h-20 w-2/3 self-end" />
-                <Skeleton className="h-20 w-3/4" />
-                <Skeleton className="h-20 w-2/3 self-end" />
-                <div className="flex-1" />
-                <Skeleton className="h-12 w-full" />
-              </div>
-            )}
-          </div>
-          {/* Preview side */}
-          <div className="flex-1 overflow-hidden bg-muted">
-            {isVersionReady ? (
-              <FreestyleDevServer
-                actions={{ requestDevServer: wrappedRequestDevServer }}
-                repoId={repoId}
-              />
-            ) : (
-              <div className="flex items-center justify-center h-full">
-                <div className="text-center space-y-2">
-                  <div className="text-muted-foreground">
-                    Initializing project...
-                  </div>
-                  <Skeleton className="h-4 w-48 mx-auto" />
+          <div className="flex flex-1 overflow-hidden">
+            {/* Chat side */}
+            <div className="flex-1 overflow-hidden border-r">
+              {isThreadReady && isVersionReady ? (
+                <Thread />
+              ) : (
+                <div className="flex h-full flex-col gap-4 p-4">
+                  <Skeleton className="h-12 w-full" />
+                  <Skeleton className="h-20 w-3/4" />
+                  <Skeleton className="h-20 w-2/3 self-end" />
+                  <Skeleton className="h-20 w-3/4" />
+                  <Skeleton className="h-20 w-2/3 self-end" />
+                  <div className="flex-1" />
+                  <Skeleton className="h-12 w-full" />
                 </div>
-              </div>
-            )}
+              )}
+            </div>
+            {/* Preview side */}
+            <div className="flex flex-1 overflow-hidden bg-muted">
+              {isVersionReady ? (
+                <Tabs
+                  value={activeDevServerTab}
+                  onValueChange={(value) =>
+                    setActiveDevServerTab(value as "preview" | "logs")
+                  }
+                  className="flex h-full min-h-0 flex-col"
+                >
+                  <div className="px-4 pt-4">
+                    <TabsList className="bg-background shadow-sm">
+                      <TabsTrigger value="preview">Dev Server</TabsTrigger>
+                      <TabsTrigger value="logs">Dev Server Logs</TabsTrigger>
+                    </TabsList>
+                  </div>
+                  <TabsContent
+                    value="preview"
+                    className="flex flex-1 min-h-0 overflow-hidden px-4 pb-4"
+                  >
+                    <div className="flex h-full w-full min-h-0 overflow-hidden rounded-lg border bg-background">
+                      <FreestyleDevServer
+                        actions={{ requestDevServer: wrappedRequestDevServer }}
+                        repoId={repoId}
+                      />
+                    </div>
+                  </TabsContent>
+                  <TabsContent
+                    value="logs"
+                    className="flex flex-1 min-h-0 overflow-hidden px-4 pb-4"
+                  >
+                    <DevServerLogs
+                      projectId={projectId}
+                      isActive={activeDevServerTab === "logs"}
+                    />
+                  </TabsContent>
+                </Tabs>
+              ) : (
+                <div className="flex h-full items-center justify-center">
+                  <div className="space-y-2 text-center">
+                    <div className="text-muted-foreground">
+                      Initializing project...
+                    </div>
+                    <Skeleton className="mx-auto h-4 w-48" />
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
       </div>
     </AssistantRuntimeProvider>
   );

@@ -15,6 +15,25 @@ interface RequestDevServerParams {
   environmentVariables: Record<string, string>;
 }
 
+interface GetDevServerLogsParams {
+  repoId: string;
+  gitRef?: string | null;
+  lines?: number | null;
+}
+
+interface GetDevServerLogsResponse {
+  logs: string;
+}
+
+interface RestartDevServerParams {
+  repoId: string;
+  gitRef?: string | null;
+}
+
+interface RestartDevServerResponse {
+  restarted: boolean;
+}
+
 interface CommitResponse {
   commits: Array<{
     sha: string;
@@ -230,6 +249,105 @@ export class FreestyleService {
       console.error("[Freestyle] Error requesting dev server:", error);
       throw new Error(
         `Failed to request Freestyle dev server: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+
+  async getDevServerLogs({
+    repoId,
+    gitRef = null,
+    lines = null,
+  }: GetDevServerLogsParams): Promise<GetDevServerLogsResponse> {
+    console.log("[Freestyle] Fetching dev server logs for repo:", repoId, {
+      gitRef,
+      lines,
+    });
+
+    try {
+      const response = await fetch(
+        `${this.apiBaseUrl}/ephemeral/v1/dev-servers/logs`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${this.apiKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            devServer: {
+              repoId,
+              gitRef,
+            },
+            lines,
+          }),
+        },
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(
+          `Failed to fetch dev server logs: ${response.status} ${response.statusText} - ${errorText}`,
+        );
+      }
+
+      const data = (await response.json()) as GetDevServerLogsResponse;
+
+      if (typeof data.logs !== "string") {
+        throw new Error("Malformed response from Freestyle logs API");
+      }
+
+      return data;
+    } catch (error) {
+      console.error("[Freestyle] Error fetching dev server logs:", error);
+      throw new Error(
+        `Failed to fetch dev server logs: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+
+  async restartDevServer({
+    repoId,
+    gitRef = null,
+  }: RestartDevServerParams): Promise<RestartDevServerResponse> {
+    console.log("[Freestyle] Restarting dev server for repo:", repoId, {
+      gitRef,
+    });
+
+    try {
+      const response = await fetch(
+        `${this.apiBaseUrl}/ephemeral/v1/dev-servers/restart`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${this.apiKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            devServer: {
+              repoId,
+              gitRef,
+            },
+          }),
+        },
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(
+          `Failed to restart dev server: ${response.status} ${response.statusText} - ${errorText}`,
+        );
+      }
+
+      const data = (await response.json()) as RestartDevServerResponse;
+
+      if (typeof data.restarted !== "boolean") {
+        throw new Error("Malformed response from Freestyle restart API");
+      }
+
+      return data;
+    } catch (error) {
+      console.error("[Freestyle] Error restarting dev server:", error);
+      throw new Error(
+        `Failed to restart dev server: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }
