@@ -21,7 +21,10 @@ export async function POST(request: Request) {
     }
 
     if (!body || typeof body !== "object") {
-      return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Invalid request body" },
+        { status: 400 },
+      );
     }
 
     const { projectId, lines, gitRef } = body as {
@@ -68,10 +71,7 @@ export async function POST(request: Request) {
       .limit(1);
 
     if (!project) {
-      return NextResponse.json(
-        { error: "Project not found" },
-        { status: 404 },
-      );
+      return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
 
     const { logs } = await freestyleService.getDevServerLogs({
