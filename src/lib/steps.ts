@@ -11,6 +11,7 @@ import { neonService } from "@/lib/neon";
 import { requestDevServer } from "@/lib/dev-server";
 import { encrypt, decrypt } from "@/lib/encryption";
 import { deleteAssistantThread } from "@/lib/assistant-ui";
+import { mainConfig } from "./config";
 
 export async function getNeonProductionBranch(neonProjectId: string) {
   "use step";
@@ -194,7 +195,7 @@ export async function deleteFreestyleRepository(repoId: string) {
   console.log("[DELETE Project] Deleting Freestyle repository:", repoId);
   const { FreestyleSandboxes } = await import("freestyle-sandboxes");
   const freestyle = new FreestyleSandboxes({
-    apiKey: process.env.FREESTYLE_API_KEY!,
+    apiKey: mainConfig.freestyle.apiKey,
   });
   await freestyle.deleteGitRepository({ repoId });
   console.log("[DELETE Project] Freestyle repository deleted successfully");

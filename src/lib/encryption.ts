@@ -1,4 +1,5 @@
 import crypto from "crypto";
+import { mainConfig } from "./config";
 
 const ALGORITHM = "aes-256-gcm";
 const IV_LENGTH = 16; // 16 bytes for GCM
@@ -9,7 +10,7 @@ const AUTH_TAG_LENGTH = 16;
  * Must be 32 bytes (256 bits) for AES-256
  */
 function getEncryptionKey(): Buffer {
-  const key = process.env.ENCRYPTION_KEY;
+  const key = mainConfig.encryptionKey;
   if (!key) {
     throw new Error(
       "ENCRYPTION_KEY environment variable is required. " +
