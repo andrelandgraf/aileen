@@ -3,12 +3,19 @@ import { db } from "@/lib/db/db";
 import { userAiApiKeysTable } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { encrypt, decrypt } from "@/lib/encryption";
+import { z } from "zod";
+import { parseRequestJson } from "@/lib/parser-utils";
 
 type AIProvider = "anthropic" | "openai" | "openrouter";
 
 function isValidProvider(provider: string): provider is AIProvider {
   return ["anthropic", "openai", "openrouter"].includes(provider);
 }
+
+const saveApiKeySchema = z.object({
+  provider: z.enum(["anthropic", "openai", "openrouter"]),
+  apiKey: z.string().trim().min(1, "API key is required"),
+});
 
 /**
  * GET - Get status of all API keys for the user
@@ -48,18 +55,16 @@ export async function POST(request: Request): Promise<Response> {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const body = await request.json();
-  const { provider: providerParam, apiKey } = body;
-
-  // Validate input
-  if (!apiKey || !providerParam || !isValidProvider(providerParam)) {
-    return Response.json(
-      { error: "Valid provider and apiKey are required" },
-      { status: 400 },
-    );
+  const { data, error } = await parseRequestJson(
+    request,
+    saveApiKeySchema,
+  );
+  if (error) {
+    return error;
   }
 
-  const provider: AIProvider = providerParam;
+  const { provider: parsedProvider, apiKey } = data;
+  const provider: AIProvider = parsedProvider;
 
   // Basic validation for Anthropic API keys
   if (provider === "anthropic" && !apiKey.startsWith("sk-ant-")) {

@@ -5,6 +5,12 @@ import { projectsTable } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { start } from "workflow/api";
 import { createManualCheckpoint } from "@/lib/workflows";
+import { z } from "zod";
+import { parseRequestJson } from "@/lib/parser-utils";
+
+const manualCheckpointSchema = z.object({
+  assistantMessageId: z.string().trim().min(1).optional().nullable(),
+});
 
 interface RouteParams {
   params: Promise<{
@@ -16,8 +22,14 @@ interface RouteParams {
 export async function POST(req: Request, { params }: RouteParams) {
   try {
     const { projectId } = await params;
-    const body = await req.json();
-    const { assistantMessageId } = body;
+    const { data, error } = await parseRequestJson(
+      req,
+      manualCheckpointSchema,
+    );
+    if (error) {
+      return error;
+    }
+    const assistantMessageId = data.assistantMessageId ?? null;
 
     console.log("[POST Checkpoint] Request for projectId:", projectId);
     console.log("[POST Checkpoint] Assistant message ID:", assistantMessageId);
@@ -61,7 +73,7 @@ export async function POST(req: Request, { params }: RouteParams) {
       project.repoId,
       project.neonProjectId,
       project.currentDevVersionId,
-      assistantMessageId || null,
+      assistantMessageId,
     ]);
 
     console.log("[POST Checkpoint] Checkpoint workflow triggered");

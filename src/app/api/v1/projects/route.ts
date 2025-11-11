@@ -8,6 +8,12 @@ import { neonService } from "@/lib/neon";
 import { revalidatePath } from "next/cache";
 import { start } from "workflow/api";
 import { initalizeFirstProjectVersion } from "@/lib/workflows";
+import { z } from "zod";
+import { parseRequestJson } from "@/lib/parser-utils";
+
+const createProjectSchema = z.object({
+  name: z.string().trim().min(1, "Project name is required"),
+});
 
 export async function POST(request: Request) {
   try {
@@ -17,18 +23,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await request.json();
-    const { name } = body;
+    const { data, error } = await parseRequestJson(
+      request,
+      createProjectSchema,
+    );
+    if (error) {
+      return error;
+    }
+    const { name } = data;
 
     console.log("[API] Create project request from user:", user.id);
     console.log("[API] Project name:", name);
-
-    if (!name) {
-      return NextResponse.json(
-        { error: "Missing required field: name" },
-        { status: 400 },
-      );
-    }
 
     // Create repo in Freestyle, Neon project, and AssistantCloud thread in parallel
     console.log(

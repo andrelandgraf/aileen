@@ -11,6 +11,12 @@ import { freestyleService } from "@/lib/freestyle";
 import { neonService } from "@/lib/neon";
 import { requestDevServer } from "@/lib/dev-server";
 import { decrypt } from "@/lib/encryption";
+import { z } from "zod";
+import { parseRequestJson } from "@/lib/parser-utils";
+
+const restoreVersionSchema = z.object({
+  versionId: z.string().trim().min(1, "Version ID is required"),
+});
 
 interface RouteParams {
   params: Promise<{
@@ -77,18 +83,17 @@ export async function GET(req: Request, { params }: RouteParams) {
 export async function POST(req: Request, { params }: RouteParams) {
   try {
     const { projectId } = await params;
-    const body = await req.json();
-    const { versionId } = body;
+    const { data, error } = await parseRequestJson(
+      req,
+      restoreVersionSchema,
+    );
+    if (error) {
+      return error;
+    }
+    const { versionId } = data;
 
     console.log("[POST Restore Version] Request for projectId:", projectId);
     console.log("[POST Restore Version] Version ID:", versionId);
-
-    if (!versionId) {
-      return NextResponse.json(
-        { error: "Version ID is required" },
-        { status: 400 },
-      );
-    }
 
     // Verify user authentication
     const user = await stackServerApp.getUser();
