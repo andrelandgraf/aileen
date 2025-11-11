@@ -23,12 +23,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const parsedBody = await parseRequestJson(request, createProjectSchema);
-    if (parsedBody.response) {
-      return parsedBody.response;
+    const [body, errorResponse] = await parseRequestJson(
+      request,
+      createProjectSchema,
+    );
+    if (errorResponse) {
+      return errorResponse;
     }
-
-    const { name } = parsedBody.data;
+    if (!body) {
+      return NextResponse.json(
+        { error: "Invalid request body" },
+        { status: 400 },
+      );
+    }
+    const { name } = body;
 
     console.log("[API] Create project request from user:", user.id);
     console.log("[API] Project name:", name);

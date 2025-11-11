@@ -83,11 +83,20 @@ export async function GET(req: Request, { params }: RouteParams) {
 export async function POST(req: Request, { params }: RouteParams) {
   try {
     const { projectId } = await params;
-    const parsedBody = await parseRequestJson(req, restoreVersionSchema);
-    if (parsedBody.response) {
-      return parsedBody.response;
+    const [body, errorResponse] = await parseRequestJson(
+      req,
+      restoreVersionSchema,
+    );
+    if (errorResponse) {
+      return errorResponse;
     }
-    const { versionId } = parsedBody.data;
+    if (!body) {
+      return NextResponse.json(
+        { error: "Invalid request body" },
+        { status: 400 },
+      );
+    }
+    const { versionId } = body;
 
     console.log("[POST Restore Version] Request for projectId:", projectId);
     console.log("[POST Restore Version] Version ID:", versionId);

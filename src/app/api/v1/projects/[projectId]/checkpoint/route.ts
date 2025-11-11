@@ -22,11 +22,20 @@ interface RouteParams {
 export async function POST(req: Request, { params }: RouteParams) {
   try {
     const { projectId } = await params;
-    const parsedBody = await parseRequestJson(req, manualCheckpointSchema);
-    if (parsedBody.response) {
-      return parsedBody.response;
+    const [body, errorResponse] = await parseRequestJson(
+      req,
+      manualCheckpointSchema,
+    );
+    if (errorResponse) {
+      return errorResponse;
     }
-    const assistantMessageId = parsedBody.data.assistantMessageId ?? null;
+    if (!body) {
+      return NextResponse.json(
+        { error: "Invalid request body" },
+        { status: 400 },
+      );
+    }
+    const assistantMessageId = body.assistantMessageId ?? null;
 
     console.log("[POST Checkpoint] Request for projectId:", projectId);
     console.log("[POST Checkpoint] Assistant message ID:", assistantMessageId);
