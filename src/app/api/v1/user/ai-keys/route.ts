@@ -55,15 +55,12 @@ export async function POST(request: Request): Promise<Response> {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const [body, errorResponse] = await parseRequestJson(
+  const { data: body, error } = await parseRequestJson(
     request,
     saveApiKeySchema,
   );
-  if (errorResponse) {
-    return errorResponse;
-  }
-  if (!body) {
-    return Response.json({ error: "Invalid request body" }, { status: 400 });
+  if (error) {
+    return error;
   }
 
   const { provider: parsedProvider, apiKey } = body;

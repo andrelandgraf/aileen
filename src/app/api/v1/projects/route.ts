@@ -23,18 +23,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const [body, errorResponse] = await parseRequestJson(
+    const { data: body, error } = await parseRequestJson(
       request,
       createProjectSchema,
     );
-    if (errorResponse) {
-      return errorResponse;
-    }
-    if (!body) {
-      return NextResponse.json(
-        { error: "Invalid request body" },
-        { status: 400 },
-      );
+    if (error) {
+      return error;
     }
     const { name } = body;
 
