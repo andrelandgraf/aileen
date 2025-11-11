@@ -9,6 +9,7 @@ import { revalidatePath } from "next/cache";
 import { start } from "workflow/api";
 import { initalizeFirstProjectVersion } from "@/lib/workflows";
 import { z } from "zod";
+import { parseWithSchema } from "@/lib/parser-utils";
 
 const createProjectSchema = z.object({
   name: z.string().trim().min(1, "Project name is required"),
@@ -31,18 +32,12 @@ export async function POST(request: Request) {
         { status: 400 },
       );
     }
-    const parseResult = createProjectSchema.safeParse(body);
-    if (!parseResult.success) {
-      return NextResponse.json(
-        {
-          error: "Invalid request body",
-          details: parseResult.error.flatten().fieldErrors,
-        },
-        { status: 400 },
-      );
+    const parsedBody = parseWithSchema(body, createProjectSchema);
+    if (parsedBody.response) {
+      return parsedBody.response;
     }
 
-    const { name } = parseResult.data;
+    const { name } = parsedBody.data;
 
     console.log("[API] Create project request from user:", user.id);
     console.log("[API] Project name:", name);

@@ -12,6 +12,7 @@ import { neonService } from "@/lib/neon";
 import { requestDevServer } from "@/lib/dev-server";
 import { decrypt } from "@/lib/encryption";
 import { z } from "zod";
+import { parseWithSchema } from "@/lib/parser-utils";
 
 const restoreVersionSchema = z.object({
   versionId: z.string().trim().min(1, "Version ID is required"),
@@ -91,17 +92,11 @@ export async function POST(req: Request, { params }: RouteParams) {
         { status: 400 },
       );
     }
-    const parseResult = restoreVersionSchema.safeParse(body);
-    if (!parseResult.success) {
-      return NextResponse.json(
-        {
-          error: "Invalid request body",
-          details: parseResult.error.flatten().fieldErrors,
-        },
-        { status: 400 },
-      );
+    const parsedBody = parseWithSchema(body, restoreVersionSchema);
+    if (parsedBody.response) {
+      return parsedBody.response;
     }
-    const { versionId } = parseResult.data;
+    const { versionId } = parsedBody.data;
 
     console.log("[POST Restore Version] Request for projectId:", projectId);
     console.log("[POST Restore Version] Version ID:", versionId);

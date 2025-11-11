@@ -4,6 +4,7 @@ import { userAiApiKeysTable } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { encrypt, decrypt } from "@/lib/encryption";
 import { z } from "zod";
+import { parseWithSchema } from "@/lib/parser-utils";
 
 type AIProvider = "anthropic" | "openai" | "openrouter";
 
@@ -60,18 +61,12 @@ export async function POST(request: Request): Promise<Response> {
   } catch {
     return Response.json({ error: "Invalid JSON body" }, { status: 400 });
   }
-  const parseResult = saveApiKeySchema.safeParse(body);
-  if (!parseResult.success) {
-    return Response.json(
-      {
-        error: "Invalid request body",
-        details: parseResult.error.flatten().fieldErrors,
-      },
-      { status: 400 },
-    );
+  const parsedBody = parseWithSchema(body, saveApiKeySchema);
+  if (parsedBody.response) {
+    return parsedBody.response;
   }
 
-  const { provider: parsedProvider, apiKey } = parseResult.data;
+  const { provider: parsedProvider, apiKey } = parsedBody.data;
   const provider: AIProvider = parsedProvider;
 
   // Basic validation for Anthropic API keys

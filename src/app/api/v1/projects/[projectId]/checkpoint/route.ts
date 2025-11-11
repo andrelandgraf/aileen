@@ -6,6 +6,7 @@ import { eq, and } from "drizzle-orm";
 import { start } from "workflow/api";
 import { createManualCheckpoint } from "@/lib/workflows";
 import { z } from "zod";
+import { parseWithSchema } from "@/lib/parser-utils";
 
 const manualCheckpointSchema = z.object({
   assistantMessageId: z.string().trim().min(1).optional().nullable(),
@@ -30,17 +31,11 @@ export async function POST(req: Request, { params }: RouteParams) {
         { status: 400 },
       );
     }
-    const parseResult = manualCheckpointSchema.safeParse(body);
-    if (!parseResult.success) {
-      return NextResponse.json(
-        {
-          error: "Invalid request body",
-          details: parseResult.error.flatten().fieldErrors,
-        },
-        { status: 400 },
-      );
+    const parsedBody = parseWithSchema(body, manualCheckpointSchema);
+    if (parsedBody.response) {
+      return parsedBody.response;
     }
-    const assistantMessageId = parseResult.data.assistantMessageId ?? null;
+    const assistantMessageId = parsedBody.data.assistantMessageId ?? null;
 
     console.log("[POST Checkpoint] Request for projectId:", projectId);
     console.log("[POST Checkpoint] Assistant message ID:", assistantMessageId);
