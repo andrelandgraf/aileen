@@ -61,7 +61,6 @@ const ProjectChatContent = ({
   const { currentVersionId } = useProjectData();
   const { devServerUrl, codeServerUrl, deploymentUrl } = useDevServerData();
   const [isDeploying, setIsDeploying] = useState(false);
-  const [runtimeError, setRuntimeError] = useState<string | null>(null);
   const { modelSelection, updateModelSelection } = useModelSelection({
     initialSelection: initialModelSelection,
     accessToken,
@@ -115,7 +114,6 @@ const ProjectChatContent = ({
     }),
     onError: (error) => {
       console.error("Chat runtime error:", error.message);
-      setRuntimeError(error.message);
     },
   });
 
@@ -230,41 +228,6 @@ const ProjectChatContent = ({
             <ProfileButton />
           </div>
         </header>
-        {runtimeError && (
-          <div className="bg-red-50 border-b-2 border-red-500 px-6 py-4 dark:bg-red-950/50 dark:border-red-400">
-            <div className="flex items-start gap-3">
-              <div className="flex-1">
-                <p className="text-base font-semibold text-red-900 dark:text-red-100">
-                  Error
-                </p>
-                <p className="text-base text-red-900 dark:text-red-100 whitespace-pre-wrap mt-1">
-                  {runtimeError}
-                </p>
-              </div>
-              <button
-                onClick={() => setRuntimeError(null)}
-                className="text-red-700 hover:text-red-900 dark:text-red-300 dark:hover:text-red-100 transition-colors"
-                aria-label="Dismiss error"
-              >
-                <span className="sr-only">Dismiss</span>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-              </button>
-            </div>
-          </div>
-        )}
         <div className="flex flex-1 overflow-hidden">
           {/* Chat side */}
           <div className="flex-1 overflow-hidden border-r">
