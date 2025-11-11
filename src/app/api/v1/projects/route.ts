@@ -23,14 +23,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { data: body, error } = await parseRequestJson(
+    const { data, error } = await parseRequestJson(
       request,
       createProjectSchema,
     );
     if (error) {
       return error;
     }
-    const { name } = body;
+    const { name } = data;
 
     console.log("[API] Create project request from user:", user.id);
     console.log("[API] Project name:", name);

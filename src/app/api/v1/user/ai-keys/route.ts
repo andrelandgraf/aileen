@@ -55,7 +55,7 @@ export async function POST(request: Request): Promise<Response> {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { data: body, error } = await parseRequestJson(
+  const { data, error } = await parseRequestJson(
     request,
     saveApiKeySchema,
   );
@@ -63,7 +63,7 @@ export async function POST(request: Request): Promise<Response> {
     return error;
   }
 
-  const { provider: parsedProvider, apiKey } = body;
+  const { provider: parsedProvider, apiKey } = data;
   const provider: AIProvider = parsedProvider;
 
   // Basic validation for Anthropic API keys

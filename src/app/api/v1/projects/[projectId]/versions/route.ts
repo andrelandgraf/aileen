@@ -83,14 +83,14 @@ export async function GET(req: Request, { params }: RouteParams) {
 export async function POST(req: Request, { params }: RouteParams) {
   try {
     const { projectId } = await params;
-    const { data: body, error } = await parseRequestJson(
+    const { data, error } = await parseRequestJson(
       req,
       restoreVersionSchema,
     );
     if (error) {
       return error;
     }
-    const { versionId } = body;
+    const { versionId } = data;
 
     console.log("[POST Restore Version] Request for projectId:", projectId);
     console.log("[POST Restore Version] Version ID:", versionId);
