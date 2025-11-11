@@ -9,7 +9,7 @@ import { revalidatePath } from "next/cache";
 import { start } from "workflow/api";
 import { initalizeFirstProjectVersion } from "@/lib/workflows";
 import { z } from "zod";
-import { parseWithSchema } from "@/lib/parser-utils";
+import { parseRequestJson } from "@/lib/parser-utils";
 
 const createProjectSchema = z.object({
   name: z.string().trim().min(1, "Project name is required"),
@@ -23,16 +23,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    let body: unknown;
-    try {
-      body = await request.json();
-    } catch {
-      return NextResponse.json(
-        { error: "Invalid JSON body" },
-        { status: 400 },
-      );
-    }
-    const parsedBody = parseWithSchema(body, createProjectSchema);
+    const parsedBody = await parseRequestJson(request, createProjectSchema);
     if (parsedBody.response) {
       return parsedBody.response;
     }

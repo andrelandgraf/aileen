@@ -18,6 +18,10 @@ interface ParseOptions {
   errorMessage?: string;
 }
 
+interface ParseRequestOptions extends ParseOptions {
+  invalidJsonMessage?: string;
+}
+
 export function parseWithSchema<T>(
   body: unknown,
   schema: ZodSchema<T>,
@@ -43,4 +47,23 @@ export function parseWithSchema<T>(
     data: result.data,
     response: null,
   };
+}
+
+export async function parseRequestJson<T>(
+  request: Request,
+  schema: ZodSchema<T>,
+  options: ParseRequestOptions = {},
+): Promise<ParseResult<T>> {
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    const { status = 400, invalidJsonMessage = "Invalid JSON body" } = options;
+    return {
+      data: null,
+      response: NextResponse.json({ error: invalidJsonMessage }, { status }),
+    };
+  }
+
+  return parseWithSchema(body, schema, options);
 }

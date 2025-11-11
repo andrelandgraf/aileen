@@ -4,7 +4,7 @@ import { userAiApiKeysTable } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { encrypt, decrypt } from "@/lib/encryption";
 import { z } from "zod";
-import { parseWithSchema } from "@/lib/parser-utils";
+import { parseRequestJson } from "@/lib/parser-utils";
 
 type AIProvider = "anthropic" | "openai" | "openrouter";
 
@@ -55,13 +55,7 @@ export async function POST(request: Request): Promise<Response> {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
-    return Response.json({ error: "Invalid JSON body" }, { status: 400 });
-  }
-  const parsedBody = parseWithSchema(body, saveApiKeySchema);
+  const parsedBody = await parseRequestJson(request, saveApiKeySchema);
   if (parsedBody.response) {
     return parsedBody.response;
   }

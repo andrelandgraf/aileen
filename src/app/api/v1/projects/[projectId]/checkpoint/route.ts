@@ -6,7 +6,7 @@ import { eq, and } from "drizzle-orm";
 import { start } from "workflow/api";
 import { createManualCheckpoint } from "@/lib/workflows";
 import { z } from "zod";
-import { parseWithSchema } from "@/lib/parser-utils";
+import { parseRequestJson } from "@/lib/parser-utils";
 
 const manualCheckpointSchema = z.object({
   assistantMessageId: z.string().trim().min(1).optional().nullable(),
@@ -22,16 +22,7 @@ interface RouteParams {
 export async function POST(req: Request, { params }: RouteParams) {
   try {
     const { projectId } = await params;
-    let body: unknown;
-    try {
-      body = await req.json();
-    } catch {
-      return NextResponse.json(
-        { error: "Invalid JSON body" },
-        { status: 400 },
-      );
-    }
-    const parsedBody = parseWithSchema(body, manualCheckpointSchema);
+    const parsedBody = await parseRequestJson(req, manualCheckpointSchema);
     if (parsedBody.response) {
       return parsedBody.response;
     }

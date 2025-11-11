@@ -12,7 +12,7 @@ import { neonService } from "@/lib/neon";
 import { requestDevServer } from "@/lib/dev-server";
 import { decrypt } from "@/lib/encryption";
 import { z } from "zod";
-import { parseWithSchema } from "@/lib/parser-utils";
+import { parseRequestJson } from "@/lib/parser-utils";
 
 const restoreVersionSchema = z.object({
   versionId: z.string().trim().min(1, "Version ID is required"),
@@ -83,16 +83,7 @@ export async function GET(req: Request, { params }: RouteParams) {
 export async function POST(req: Request, { params }: RouteParams) {
   try {
     const { projectId } = await params;
-    let body: unknown;
-    try {
-      body = await req.json();
-    } catch {
-      return NextResponse.json(
-        { error: "Invalid JSON body" },
-        { status: 400 },
-      );
-    }
-    const parsedBody = parseWithSchema(body, restoreVersionSchema);
+    const parsedBody = await parseRequestJson(req, restoreVersionSchema);
     if (parsedBody.response) {
       return parsedBody.response;
     }
