@@ -22,10 +22,7 @@ interface RouteParams {
 export async function POST(req: Request, { params }: RouteParams) {
   try {
     const { projectId } = await params;
-    const { data, error } = await parseRequestJson(
-      req,
-      manualCheckpointSchema,
-    );
+    const { data, error } = await parseRequestJson(req, manualCheckpointSchema);
     if (error) {
       return error;
     }

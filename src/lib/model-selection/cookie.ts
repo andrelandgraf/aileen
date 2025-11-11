@@ -1,35 +1,49 @@
-import { getJsonCookie, setJsonCookie, deleteCookie } from "@/lib/cookies";
+import { getServerJsonCookie } from "@/lib/cookies";
 import type { ModelSelection } from "./types";
 import { DEFAULT_MODEL_SELECTION } from "./types";
+import type { cookies } from "next/headers";
 
-const COOKIE_NAME = "aileen_model_selection";
-const COOKIE_MAX_AGE = 90 * 24 * 60 * 60; // 90 days in seconds
+export const COOKIE_NAME = "aileen_model_selection";
+export const COOKIE_MAX_AGE = 90 * 24 * 60 * 60; // 90 days in seconds
+
+type CookieStore = Awaited<ReturnType<typeof cookies>>;
 
 /**
  * Validate if an object is a valid ModelSelection
  */
-function isValidModelSelection(value: unknown): value is ModelSelection {
+export function isValidModelSelection(value: unknown): value is ModelSelection {
   if (typeof value !== "object" || value === null) return false;
 
   const obj = value as Record<string, unknown>;
 
   return (
     (obj.provider === "platform" || obj.provider === "personal") &&
-    typeof obj.model === "string"
+    typeof obj.modelId === "string"
   );
 }
 
 /**
- * Get model selection from cookie
+ * Get model selection from cookie (server-side only)
+ * Use this in Server Components to read the user's model selection
+ *
+ * @example
+ * ```ts
+ * import { cookies } from "next/headers";
+ * import { getModelSelectionFromCookie } from "@/lib/model-selection/cookie";
+ *
+ * const cookieStore = await cookies();
+ * const selection = getModelSelectionFromCookie(cookieStore);
+ * ```
  */
-export function getModelSelectionFromCookie(): ModelSelection | null {
-  const value = getJsonCookie<unknown>(COOKIE_NAME);
+export function getModelSelectionFromCookie(
+  cookieStore: CookieStore,
+): ModelSelection | null {
+  const value = getServerJsonCookie<unknown>(COOKIE_NAME, cookieStore);
 
   if (!value) return null;
 
   if (!isValidModelSelection(value)) {
-    console.warn("Invalid model selection in cookie, clearing");
-    deleteCookie(COOKIE_NAME);
+    console.warn("Invalid model selection in cookie");
     return null;
   }
 
@@ -37,24 +51,43 @@ export function getModelSelectionFromCookie(): ModelSelection | null {
 }
 
 /**
- * Save model selection to cookie
+ * Get model selection from cookie with fallback to default (server-side only)
+ *
+ * @example
+ * ```ts
+ * import { cookies } from "next/headers";
+ * import { getModelSelectionOrDefault } from "@/lib/model-selection/cookie";
+ *
+ * const cookieStore = await cookies();
+ * const selection = getModelSelectionOrDefault(cookieStore);
+ * ```
  */
-export function saveModelSelectionToCookie(selection: ModelSelection): void {
-  setJsonCookie(COOKIE_NAME, selection, {
-    maxAge: COOKIE_MAX_AGE,
+export function getModelSelectionOrDefault(
+  cookieStore: CookieStore,
+): ModelSelection {
+  return getModelSelectionFromCookie(cookieStore) ?? DEFAULT_MODEL_SELECTION;
+}
+
+/**
+ * Save model selection to cookie (client-side via API)
+ * This calls the API endpoint to set the cookie server-side
+ * Authentication is handled automatically via Stack Auth session cookie
+ *
+ * @param selection The model selection to save
+ */
+export async function saveModelSelectionToCookie(
+  selection: ModelSelection,
+): Promise<void> {
+  const response = await fetch("/api/v1/user/model-selection", {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(selection),
   });
-}
 
-/**
- * Clear model selection cookie
- */
-export function clearModelSelectionCookie(): void {
-  deleteCookie(COOKIE_NAME);
-}
-
-/**
- * Get model selection from cookie with fallback to default
- */
-export function getModelSelectionOrDefault(): ModelSelection {
-  return getModelSelectionFromCookie() ?? DEFAULT_MODEL_SELECTION;
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to save model selection");
+  }
 }

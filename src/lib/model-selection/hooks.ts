@@ -1,16 +1,17 @@
 import { useState, useEffect, useCallback } from "react";
 import type { ModelSelection } from "./types";
 import { DEFAULT_MODEL_SELECTION } from "./types";
-import {
-  getModelSelectionOrDefault,
-  saveModelSelectionToCookie,
-} from "./cookie";
+import { saveModelSelectionToCookie } from "./cookie";
 
 interface UseModelSelectionOptions {
   /**
-   * Access token for validating personal API keys
+   * Initial model selection from server-side cookie
    */
-  accessToken?: string;
+  initialSelection: ModelSelection;
+  /**
+   * Access token for API calls
+   */
+  accessToken: string;
   /**
    * Whether to validate personal provider on mount
    */
@@ -23,30 +24,28 @@ interface KeyStatus {
 }
 
 /**
- * Hook for managing model selection with cookie persistence
+ * Hook for managing model selection with server-side cookie persistence
  *
  * Features:
- * - Loads initial selection from cookie
- * - Automatically saves changes to cookie
+ * - Receives initial selection from server (no client-side cookie reading)
+ * - Saves changes via API endpoint (server sets cookie)
  * - Validates personal provider has API key (optional)
  * - Falls back to platform provider if personal key missing
  */
-export function useModelSelection(options: UseModelSelectionOptions = {}) {
-  const { accessToken, validatePersonalProvider = true } = options;
+export function useModelSelection(options: UseModelSelectionOptions) {
+  const {
+    initialSelection,
+    accessToken,
+    validatePersonalProvider = true,
+  } = options;
 
-  // Initialize with default, then load from cookie on client
-  const [modelSelection, setModelSelection] = useState<ModelSelection>(
-    DEFAULT_MODEL_SELECTION,
-  );
+  // Initialize with value from server (no hydration mismatch)
+  const [modelSelection, setModelSelection] =
+    useState<ModelSelection>(initialSelection);
 
-  // Load from cookie on client mount
+  // Validate personal provider on mount
   useEffect(() => {
-    setModelSelection(getModelSelectionOrDefault());
-  }, []);
-
-  // Validate personal provider after cookie is loaded
-  useEffect(() => {
-    if (!validatePersonalProvider || !accessToken) return;
+    if (!validatePersonalProvider) return;
     if (modelSelection.provider !== "personal") return;
 
     const validateKey = async () => {
@@ -79,23 +78,38 @@ export function useModelSelection(options: UseModelSelectionOptions = {}) {
           console.warn(
             `Personal provider selected for ${modelProvider} but no API key found, falling back to platform`,
           );
-          updateModelSelection(DEFAULT_MODEL_SELECTION);
+          await updateModelSelection(DEFAULT_MODEL_SELECTION);
         }
       } catch (error) {
         console.error("Failed to validate personal provider:", error);
         // On error, fall back to platform for safety
-        updateModelSelection(DEFAULT_MODEL_SELECTION);
+        await updateModelSelection(DEFAULT_MODEL_SELECTION);
       }
     };
 
     validateKey();
-  }, [modelSelection, validatePersonalProvider, accessToken]); // Run when modelSelection changes (including after cookie load)
-
-  // Update selection and save to cookie
-  const updateModelSelection = useCallback((selection: ModelSelection) => {
-    setModelSelection(selection);
-    saveModelSelectionToCookie(selection);
+    // Only run on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Update selection and save to cookie via API
+  const updateModelSelection = useCallback(
+    async (selection: ModelSelection) => {
+      try {
+        // Optimistically update UI
+        setModelSelection(selection);
+
+        // Persist to server (auth handled by Stack Auth cookie)
+        await saveModelSelectionToCookie(selection);
+      } catch (error) {
+        console.error("Failed to save model selection:", error);
+        // Revert on error
+        setModelSelection(modelSelection);
+        throw error;
+      }
+    },
+    [modelSelection],
+  );
 
   return {
     modelSelection,

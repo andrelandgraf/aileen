@@ -4,6 +4,8 @@ import { db } from "@/lib/db/db";
 import { projectsTable } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { ProjectChat } from "@/components/project-chat";
+import { cookies } from "next/headers";
+import { getModelSelectionOrDefault } from "@/lib/model-selection/cookie";
 
 interface ProjectPageProps {
   params: Promise<{
@@ -32,6 +34,10 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
   }
   const accessToken = authJson.accessToken;
 
+  // Read model selection from cookie (server-side)
+  const cookieStore = await cookies();
+  const initialModelSelection = getModelSelectionOrDefault(cookieStore);
+
   return (
     <ProjectChat
       projectId={id}
@@ -39,6 +45,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
       repoId={project.repoId}
       threadId={project.threadId}
       accessToken={accessToken}
+      initialModelSelection={initialModelSelection}
     />
   );
 }

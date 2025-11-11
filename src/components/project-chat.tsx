@@ -35,6 +35,7 @@ import {
 } from "lucide-react";
 import { ModelSelectorModal } from "@/components/model-selector-modal";
 import { useModelSelection } from "@/lib/model-selection/hooks";
+import type { ModelSelection } from "@/lib/model-selection/types";
 import { useEffect, useState } from "react";
 import { FreestyleDevServer } from "freestyle-sandboxes/react/dev-server";
 import { requestDevServer } from "@/actions/preview-actions";
@@ -46,6 +47,7 @@ interface ProjectChatProps {
   repoId: string;
   threadId: string;
   accessToken: string;
+  initialModelSelection: ModelSelection;
 }
 
 const ProjectChatContent = ({
@@ -54,12 +56,14 @@ const ProjectChatContent = ({
   repoId,
   threadId,
   accessToken,
+  initialModelSelection,
 }: ProjectChatProps) => {
   const { currentVersionId } = useProjectData();
   const { devServerUrl, codeServerUrl, deploymentUrl } = useDevServerData();
   const [isDeploying, setIsDeploying] = useState(false);
   const [runtimeError, setRuntimeError] = useState<string | null>(null);
   const { modelSelection, updateModelSelection } = useModelSelection({
+    initialSelection: initialModelSelection,
     accessToken,
     validatePersonalProvider: true,
   });
